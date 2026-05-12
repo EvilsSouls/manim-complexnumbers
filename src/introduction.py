@@ -1,9 +1,11 @@
+import numpy as np
 from manim import *
 from manim_slides import Slide
+from MF_Tools import *
 
 class IntroduceNumberSystems(Slide):
     def construct(self):
-        # self.start_skip_animations()
+        self.start_skip_animations()
         # @todo: Natürliche Zahlen
         self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
 
@@ -71,44 +73,63 @@ class IntroduceNumberSystems(Slide):
 
         self.play(Create(pointer_label))
 
-        variable_val = MathTex("x = ", f"{START_VAL:.0f}").shift(UP*3)
+        variable_val = MathTex(f"x = {START_VAL:.0f}").shift(UP*3)
         self.play(Write(variable_val), run_time=0.5)
 
 
-        # self.stop_skip_animations()
+        self.stop_skip_animations()
         self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!", loop=True)
 
         def slide_incr(val, run_time):
+            formatted_val_string = f"+{val if val >= 0 else f'({val})'}"
             line = Line(ORIGIN_NAT_NUMS + RIGHT * value_tracker.get_value() * SPACING + 2 * DOWN, ORIGIN_NAT_NUMS + RIGHT * (value_tracker.get_value() + val) * SPACING + 2 * DOWN)
             br = Brace(line, buff=0.5, sharpness=2, color=RED_E)
-            label = MathTex(f"+{val if val >= 0 else f'({val})'}", color=RED).next_to(br, DOWN)
+            label = MathTex(formatted_val_string, color=RED).next_to(br, DOWN)
 
-            new_variable_val = MathTex("x = ", f"{value_tracker.get_value():.0f}", f" + {val:.0f}").shift(UP*3).align_to(variable_val, LEFT)
-            new_variable_val[-1].set_color(RED)
+            new_variable_val = MathTex(f"x = {value_tracker.get_value():.0f} {formatted_val_string}").shift(UP*3).align_to(variable_val, LEFT)
+            new_variable_val.set_color_by_tex(formatted_val_string, RED) # Color isn't working yet
+            summand_range = list(range(3, len(new_variable_val[0])))
 
-            self.play(FadeIn(br, shift=UP), FadeIn(label, shift=UP), Write(new_variable_val[-1]), run_time=0.4)
-            self.play(Transform(variable_val, new_variable_val), run_time=0.001) # Cursed
+            self.play(FadeIn(br, shift=UP),
+                      FadeIn(label, shift=UP),
+                      TransformByGlyphMap(variable_val, new_variable_val,
+                                          ([0, 1, 2], [0, 1, 2]),
+                                          ([], summand_range),
+                                          introduce_individually=True,
+                                          default_introducer=Write),
+                      run_time=0.4)
 
             self.wait(0.3)
 
-            newer_variable_val = MathTex("x = ", f"{value_tracker.get_value() + val:.0f}").shift(UP*3)
-            self.play(value_tracker.animate.increment_value(val), Transform(new_variable_val, newer_variable_val), run_time=run_time)
+            newer_variable_val = MathTex(f"x = {value_tracker.get_value() + val:.0f}").shift(UP*3)
+            result_range = list(range(2, len(newer_variable_val[0])))
+            sum_range = summand_range.
+
+            print(f"Summand Range: {summand_range.insert(0,2)}, Result Range: {result_range}")
+
+            self.play(value_tracker.animate.increment_value(val),
+                      TransformByGlyphMap(new_variable_val, newer_variable_val,
+                                          ([0, 1], [0, 1]),
+                                          (summand_range.insert(0, 2), result_range)),
+                      run_time=run_time)
 
             self.play(Transform(br, pointer_label.copy()), Transform(label, pointer_label.copy()), run_time=0.33)
             self.remove(br, label)
 
+            return newer_variable_val # Cursed; Should abstract to seperate methods
+
         # self.play(value_tracker.animate.increment_value(1), run_time=0.75)
-        slide_incr(1, 0.75)
+        variable_val = slide_incr(1, 0.75)
         self.wait(0.5)
 
         # self.play(value_tracker.animate.increment_value(-3), run_time=0.75)
-        slide_incr(-3, 0.75)
-        self.wait(0.5)
-
-        # self.play(value_tracker.animate.increment_value(7), run_time=0.75)
-        slide_incr(7, 0.75)
-        self.wait(0.5)
-
-        # self.play(value_tracker.animate.increment_value(-5), run_time=1.25)
-        slide_incr(-5, 1.5)
-        self.wait(3)
+        # variable_val = slide_incr(-3, 0.75)
+        # self.wait(0.5)
+        #
+        # # self.play(value_tracker.animate.increment_value(7), run_time=0.75)
+        # variable_val = slide_incr(7, 0.75)
+        # self.wait(0.5)
+        #
+        # # self.play(value_tracker.animate.increment_value(-5), run_time=1.25)
+        # variable_val = slide_incr(-5, 1.5)
+        # self.wait(3)

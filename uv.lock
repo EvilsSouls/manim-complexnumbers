@@ -198,7 +198,7 @@ dependencies = [
 requires-dist = [
     { name = "manim", specifier = ">=0.20.1" },
     { name = "manim-slides", extras = ["pyside6"], specifier = ">=5.6.0" },
-    { name = "mf-tools", specifier = ">=1.4.8" },
+    { name = "mf-tools", specifier = ">=1.4.5" },
     { name = "pyside6", specifier = "==6.9.3" },
 ]
 
@@ -467,11 +467,11 @@ wheels = [
 
 [[package]]
 name = "mf-tools"
-version = "1.4.8"
+version = "1.4.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0b/bd/21edc2c9728d192d82cd9a06036796f3084af1a630830932fbca73521fd8/mf_tools-1.4.8.tar.gz", hash = "sha256:edcb8900196a283c9168fa5f4410f999e693cb0352233d05d4a02ef6559eacee", size = 23768, upload-time = "2026-04-20T00:08:55.582Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/84/f12399bd8c9d97313e1d8afe213e51ea2a7b243994108eb7dc9fe7683e2a/mf_tools-1.4.5.tar.gz", hash = "sha256:533de0cd2288fe788ca21888644c62151d26a69a02a857cc52f6291ef914eb1b", size = 23218, upload-time = "2026-02-13T05:32:36.523Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/ed/3a1bc0b1ef6f63a64d33472d0a7cde647149228b5229df5e7c24f90ec7f0/mf_tools-1.4.8-py3-none-any.whl", hash = "sha256:cc125676ffac2f2eb2b9dd82c61a573c4642c8dd46dd5438e34be48aced4922d", size = 19929, upload-time = "2026-04-20T00:08:56.524Z" },
+    { url = "https://files.pythonhosted.org/packages/31/d5/7394758640ed9a416630fe7f4754f3ecdf4ba1c495e8772c2dec70df7fd6/mf_tools-1.4.5-py3-none-any.whl", hash = "sha256:f47be15f3c71a431f7e73fbe1b8137dd570c4c77a71526010067a62ec9152583", size = 19516, upload-time = "2026-02-13T05:32:34.788Z" },
 ]
 
 [[package]]
