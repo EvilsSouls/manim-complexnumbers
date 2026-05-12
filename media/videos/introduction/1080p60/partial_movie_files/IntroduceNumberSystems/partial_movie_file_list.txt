@@ -1,6 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:/home/evilssouls/Projects/local/Manim/complexnumbers/media/videos/introduction/1080p60/partial_movie_files/IntroduceNumberSystems/2135761390_2483337621_254241703.mp4'
-file 'file:/home/evilssouls/Projects/local/Manim/complexnumbers/media/videos/introduction/1080p60/partial_movie_files/IntroduceNumberSystems/2135761390_4079250704_3859151120.mp4'
-file 'file:/home/evilssouls/Projects/local/Manim/complexnumbers/media/videos/introduction/1080p60/partial_movie_files/IntroduceNumberSystems/2135761390_2677348779_3377143947.mp4'
-file 'file:/home/evilssouls/Projects/local/Manim/complexnumbers/media/videos/introduction/1080p60/partial_movie_files/IntroduceNumberSystems/2135761390_3247589688_1241986910.mp4'
-file 'file:/home/evilssouls/Projects/local/Manim/complexnumbers/media/videos/introduction/1080p60/partial_movie_files/IntroduceNumberSystems/2135761390_2574473371_2840632840.mp4'

@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Manim-specific files
+slides/
+media/
+html_assets/
+gfs_assets
