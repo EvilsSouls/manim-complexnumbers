@@ -11,6 +11,5 @@ dependencies = [
     "pyside6==6.9.3",
 ]
 
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
+[tool.basedpyright]
+typeCheckingMode = "basic"
