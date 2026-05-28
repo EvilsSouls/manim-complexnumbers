@@ -13,4 +13,5 @@ wheels/
 slides/
 media/
 html_assets/
-gfs_assets
+gfs_assets/
+#gfs.html
