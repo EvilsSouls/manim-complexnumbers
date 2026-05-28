@@ -6,7 +6,9 @@ import MF_Tools as mf_tools
 from manim.typing import Vector3DLike
 
 class IntroduceNumberSystems(Slide):
-    def __init__(self) -> None:
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
         self.ORIGIN_NAT_NUMS = LEFT * 6.75
         self.START_VAL = 5
         self.SPACING = 0.95
@@ -138,8 +140,7 @@ class IntroduceNumberSystems(Slide):
                           (list(summands_glyph_range), list(result_glyph_range))),
                       run_time=run_time)
 
-            # self.play(Transform(br, self.pointer_label.copy()), Transform(label, self.pointer_label.copy()), run_time=0.33)
-            self.play(Transform(VGroup(br, label), self.pointer_label.copy()), run_time=0.33)
+            self.play(Transform(br, self.pointer_label.copy()), Transform(label, self.pointer_label.copy()), run_time=0.33)
             self.remove(br, label)
 
             self.variable_val = newer_variable_val
@@ -157,7 +158,7 @@ class IntroduceNumberSystems(Slide):
         self.wait(3)
 
     def construct(self):
-        # self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
+        self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
         END_NUM = 15
         self.animate_creation_natural_numbers(END_NUM)
 
