@@ -17,6 +17,11 @@ class IntroduceNumberSystems(Slide):
 
         self.NAT_POINT_COLOR = YELLOW
 
+    # Sometimes the last frame does not get rendered, when presenting
+    def next_slide(self, *args, **kwargs):
+        self.wait(0.001)
+        super().next_slide(*args, **kwargs)
+
     def nl_to_coords(self, nl_val):
         return self.ORIGIN_NAT_NUMS + RIGHT * nl_val * self.SPACING
 
@@ -27,10 +32,10 @@ class IntroduceNumberSystems(Slide):
         for i in range(0, END_NUM):
             dot = Dot(point=self.nl_to_coords(i), color=self.NAT_POINT_COLOR)
             dot_label = Tex(f"{i}").next_to(dot, UP)
-            self.nat_dots.add(VGroup(dot, dot_label))
+            self.nat_dots.add(VDict([('d', dot), ('l', dot_label)]))
 
         self.play(
-            AnimationGroup(*[Create(point_label) for point_label in self.nat_dots], lag_ratio=lag_ratio, run_time=run_time)
+            AnimationGroup(*[AnimationGroup(GrowFromCenter(point_label['d']), Write(point_label['l'])) for point_label in self.nat_dots], lag_ratio=lag_ratio, run_time=run_time)
         )
 
     def show_example_arithmetic_operations(
@@ -55,13 +60,24 @@ class IntroduceNumberSystems(Slide):
             operand2_dot = self.nat_dots[val_b]
             result_dot = self.nat_dots[val_c]
 
-            self.play(Write(VGroup(tex.submobjects[0:2])), Indicate(operand1_dot, color=OPERAND1_COLOR, scale_factor=DOTS_SCALE_FACTOR), run_time=WRITE_RUN_TIME)
-            self.play(Write(VGroup(tex.submobjects[2:4])), Indicate(operand2_dot, color=operand2_color, scale_factor=DOTS_SCALE_FACTOR), run_time=WRITE_RUN_TIME)
-            self.play(Write(VGroup(tex.submobjects[4])), Indicate(result_dot, color=RESULT_COLOR, scale_factor=DOTS_SCALE_FACTOR), run_time=WRITE_RUN_TIME)
+            indicate_dots = [(operand1_dot, OPERAND1_COLOR), (None, None), (operand2_dot, operand2_color), (None, None), (result_dot, RESULT_COLOR)]
+
+            animations = []
+            for (i, current_glyph) in enumerate(tex.submobjects):
+                current_dot, current_dot_indicate_color = indicate_dots[i]
+                if current_dot:
+                    animations.append(AnimationGroup(Write(current_glyph), Indicate(current_dot, color=current_dot_indicate_color, scale_factor=DOTS_SCALE_FACTOR)))
+                else:
+                    animations.append(Write(current_glyph))
+
+            self.play(
+                AnimationGroup(*[animations], lag_ratio = 0.5),
+                run_time=WRITE_RUN_TIME
+            )
 
             return tex
 
-        FADE_OUT_TIME = WRITE_RUN_TIME / 3
+        FADE_OUT_TIME = WRITE_RUN_TIME / 9
 
         sum_example_tex = show_arithmetic_binary_operation(5, '+', 8, 13)
 
@@ -85,19 +101,19 @@ class IntroduceNumberSystems(Slide):
         self.value_tracker = ValueTracker(self.START_VAL)
 
         pointer_loc = self.nl_to_coords(self.value_tracker.get_value())
-        pointer = Arrow(start=pointer_loc + self.POINTER_LENGTH * DOWN, end=pointer_loc, buff=0.3)
-        pointer.add_updater(lambda m: m.move_to(self.nl_to_coords(self.value_tracker.get_value()) + 1/2 * self.POINTER_LENGTH * DOWN))
+        self.pointer = Arrow(start=pointer_loc + self.POINTER_LENGTH * DOWN, end=pointer_loc, buff=0.3)
+        self.pointer.add_updater(lambda m: m.move_to(self.nl_to_coords(self.value_tracker.get_value()) + 1/2 * self.POINTER_LENGTH * DOWN))
 
-        label = MathTex("x").add_updater(lambda m: m.next_to(pointer, DOWN))
-        self.pointer_label = VGroup(pointer, label)
+        self.pointer_label = MathTex("x").next_to(self.pointer, DOWN)
+        self.play(AnimationGroup(GrowArrow(self.pointer), Write(self.pointer_label), lag_ratio = 0.5), run_time=POINTER_CREATION_TIME)
 
-        self.play(Create(self.pointer_label), run_time=POINTER_CREATION_TIME)
+        # Only add updater after animation, so that it doesn't move with the growing pointer
+        self.pointer_label.add_updater(lambda m: m.next_to(self.pointer, DOWN))
 
         self.variable_val = MathTex(f"x = {self.START_VAL:.0f}").shift(TEX_LOC)
         TEX_WRITING_TIME = POINTER_CREATION_TIME / 2
         self.play(Write(self.variable_val), run_time=TEX_WRITING_TIME)
 
-    # TODO
     def experimentation_add_subtract(self, SUMMAND_COLOR: ParsableManimColor):
         def slide_incr(val, run_time):
             formatted_val_string = f"{'+' if val >= 0 else ''}" + str(val)
@@ -140,7 +156,7 @@ class IntroduceNumberSystems(Slide):
                           (list(summands_glyph_range), list(result_glyph_range))),
                       run_time=run_time)
 
-            self.play(Transform(br, self.pointer_label.copy()), Transform(label, self.pointer_label.copy()), run_time=0.33)
+            self.play(Transform(br, self.pointer.copy()), Transform(label, self.pointer.copy()), run_time=0.33)
             self.remove(br, label)
 
             self.variable_val = newer_variable_val
@@ -162,13 +178,22 @@ class IntroduceNumberSystems(Slide):
         END_NUM = 15
         self.animate_creation_natural_numbers(END_NUM)
 
-        self.next_slide(notes="Normale Arithmetische Operationen: Addition, Subtraktion, Multiplikation, Division, **etc.**")
-        DOTS_SCALE_FACTOR = 2
-        WRITE_RUN_TIME = 0.75
-        OPERAND1_COLOR = BLUE
-        OPERAND2_COLOR = PURPLE
-        RESULT_COLOR = GREEN
-        self.show_example_arithmetic_operations(self.TEX_LOC, DOTS_SCALE_FACTOR, WRITE_RUN_TIME, OPERAND1_COLOR, OPERAND2_COLOR, RESULT_COLOR)
+        ## Probably won't use this.
+        ## I fear it might not actually be relevant to the actual presentation and might only serve to distract the listener from what I am saying.
+        ## See 'math videos online — any advice' question on https://www.3blue1brown.com/about#faqs
+        ## (I had already had my reservations on including this, due to the point mentioned in the advice (specifically under 'avoid pointless animations'),
+        ## but still was unsure about it).
+        ## I do think it might be helpful, to slow my talking down.
+        ## If I need to wait for this animation, it might remind me to pause when speaking and think about what I say next.
+        ## Perhaps I should simply experiment with including it and not including it, when I practice (TODO)
+
+        # self.next_slide(notes="Normale Arithmetische Operationen: Addition, Subtraktion, Multiplikation, Division, **etc.**")
+        # DOTS_SCALE_FACTOR = 2
+        # WRITE_RUN_TIME = 2.25
+        # OPERAND1_COLOR = BLUE
+        # OPERAND2_COLOR = PURPLE
+        # RESULT_COLOR = GREEN
+        # self.show_example_arithmetic_operations(self.TEX_LOC, DOTS_SCALE_FACTOR, WRITE_RUN_TIME, OPERAND1_COLOR, OPERAND2_COLOR, RESULT_COLOR)
 
         self.next_slide(notes="Doch wenn wir uns der einfachste Operator—die Addition—noch mal anschauen, kann man schnell ein Problem erkennen. \n\n Wir definieren eine Zahl x, die bei 5 beginnt")
         POINTER_CREATION_TIME = 1
