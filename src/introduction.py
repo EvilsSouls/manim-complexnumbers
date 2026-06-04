@@ -2,25 +2,16 @@ import numpy as np
 from manim import *
 from manim_slides import Slide
 import MF_Tools as mf_tools
-import sys
 
 from manim.typing import Vector3DLike
 
-def temp_function(self, dots):
-    sys.stderr.write("Hello World")
-    diff = self.nl_to_coords(0) - self.zero_dot.get_center()
-    # sys.stdout.write(f"Origin Difference: {diff}")
-    dots.shift(diff)
-
 class IntroduceNumberSystems(Slide):
-    # TODO: Remove __init__ function, as manim purposely implements the calling of a per-default Scene.setup() function for initializing attributes such as these
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
+    def setup(self) -> None:
         # self.origin_nat_nums * LEFT is where the '0' point of the number system is located
         # I previously had it simply set to 6.75 * LEFT, however since I need to move it to the right, when introducing whole numbers,
         # it must be a ValueTracker, which can't use a vector as its input
         self.origin_nat_nums = mf_tools.VT(6.75)
+
         self.START_VAL = 5
         self.SPACING = 0.95
         self.TEX_LOC = UP * 3
@@ -48,15 +39,18 @@ class IntroduceNumberSystems(Slide):
         # Store a refernce to the '0' dot, for future reference (when negative numbers are added)
         # This is technically not needed, since the negative dots will be added after the positive ones and will as such not be needed,
         # but I'd rather not deal wit that and simply have an easy-to-read reference
-        self.zero_dot = self.nat_dots[0]
-
-        # Always move the dots to the location defined by self.origin_nat_nums
-        # Credit to the Example Gallery for idea on how to implement this (https://docs.manim.community/en/stable/examples.html#movinggrouptodestination)
-        self.nat_dots.add_updater(temp_function)
+        self.zero_dot = self.nat_dots[0]['d']
 
         self.play(
             AnimationGroup(*[AnimationGroup(GrowFromCenter(point_label['d']), Write(point_label['l'])) for point_label in self.nat_dots], lag_ratio=lag_ratio, run_time=run_time)
         )
+
+        # The Group has to be added to the scene for animations and updaters on the entire group to function
+        self.add(self.nat_dots)
+
+        # Always move the dots to the location defined by self.origin_nat_nums
+        # Credit to the Example Gallery for idea on how to implement this (https://docs.manim.community/en/stable/examples.html#movinggrouptodestination)
+        self.nat_dots.add_updater(lambda dots: dots.shift(self.nl_to_coords(0) - self.zero_dot.get_center()))
 
     def show_example_arithmetic_operations(
         self,
@@ -193,7 +187,7 @@ class IntroduceNumberSystems(Slide):
         slide_incr(-8, 1)
 
     def introduction_whole_numbers(self):
-        self.play(self.origin_nat_nums.animate.set_value(0))
+        self.play(self.origin_nat_nums.animate.set_value(0), run_time=1.5)
 
     def construct(self):
         self.start_skip_animations()
@@ -222,10 +216,10 @@ class IntroduceNumberSystems(Slide):
         POINTER_CREATION_TIME = 1
         self.prepare_experimentation_add_subtract(self.TEX_LOC, POINTER_CREATION_TIME)
 
-        self.stop_skip_animations()
         self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!")
         SUMMAND_COLOR = RED
         self.experimentation_add_subtract(SUMMAND_COLOR)
 
+        self.stop_skip_animations()
         self.next_slide()
         self.introduction_whole_numbers()
