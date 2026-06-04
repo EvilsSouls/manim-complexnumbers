@@ -2,14 +2,25 @@ import numpy as np
 from manim import *
 from manim_slides import Slide
 import MF_Tools as mf_tools
+import sys
 
 from manim.typing import Vector3DLike
 
+def temp_function(self, dots):
+    sys.stderr.write("Hello World")
+    diff = self.nl_to_coords(0) - self.zero_dot.get_center()
+    # sys.stdout.write(f"Origin Difference: {diff}")
+    dots.shift(diff)
+
 class IntroduceNumberSystems(Slide):
+    # TODO: Remove __init__ function, as manim purposely implements the calling of a per-default Scene.setup() function for initializing attributes such as these
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.ORIGIN_NAT_NUMS = LEFT * 6.75
+        # self.origin_nat_nums * LEFT is where the '0' point of the number system is located
+        # I previously had it simply set to 6.75 * LEFT, however since I need to move it to the right, when introducing whole numbers,
+        # it must be a ValueTracker, which can't use a vector as its input
+        self.origin_nat_nums = mf_tools.VT(6.75)
         self.START_VAL = 5
         self.SPACING = 0.95
         self.TEX_LOC = UP * 3
@@ -17,13 +28,13 @@ class IntroduceNumberSystems(Slide):
 
         self.NAT_POINT_COLOR = YELLOW
 
-    # Sometimes the last frame does not get rendered, when presenting
+    # Somewhat hacky fix, where sometimes the last frame does not get rendered when presenting
     def next_slide(self, *args, **kwargs):
         self.wait(0.001)
         super().next_slide(*args, **kwargs)
 
     def nl_to_coords(self, nl_val):
-        return self.ORIGIN_NAT_NUMS + RIGHT * nl_val * self.SPACING
+        return ~self.origin_nat_nums * LEFT + RIGHT * nl_val * self.SPACING
 
     # TODO: Add reference that these numbers are the natural numbers, such that it can change in the process (Natural Numbers perhaps fades into symbol that stays in the upper left corner)
     def animate_creation_natural_numbers(self, END_NUM: int, lag_ratio = 0.5, run_time = 1) -> None:
@@ -33,6 +44,15 @@ class IntroduceNumberSystems(Slide):
             dot = Dot(point=self.nl_to_coords(i), color=self.NAT_POINT_COLOR)
             dot_label = Tex(f"{i}").next_to(dot, UP)
             self.nat_dots.add(VDict([('d', dot), ('l', dot_label)]))
+
+        # Store a refernce to the '0' dot, for future reference (when negative numbers are added)
+        # This is technically not needed, since the negative dots will be added after the positive ones and will as such not be needed,
+        # but I'd rather not deal wit that and simply have an easy-to-read reference
+        self.zero_dot = self.nat_dots[0]
+
+        # Always move the dots to the location defined by self.origin_nat_nums
+        # Credit to the Example Gallery for idea on how to implement this (https://docs.manim.community/en/stable/examples.html#movinggrouptodestination)
+        self.nat_dots.add_updater(temp_function)
 
         self.play(
             AnimationGroup(*[AnimationGroup(GrowFromCenter(point_label['d']), Write(point_label['l'])) for point_label in self.nat_dots], lag_ratio=lag_ratio, run_time=run_time)
@@ -164,16 +184,19 @@ class IntroduceNumberSystems(Slide):
         slide_incr(1, 0.75)
         self.wait(0.5)
 
-        slide_incr(-3, 0.75)
+        slide_incr(-4, 0.75)
         self.wait(0.5)
 
         slide_incr(7, 0.75)
         self.wait(0.5)
 
-        slide_incr(-5, 1.5)
-        self.wait(3)
+        slide_incr(-8, 1)
+
+    def introduction_whole_numbers(self):
+        self.play(self.origin_nat_nums.animate.set_value(0))
 
     def construct(self):
+        self.start_skip_animations()
         self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
         END_NUM = 15
         self.animate_creation_natural_numbers(END_NUM)
@@ -195,10 +218,14 @@ class IntroduceNumberSystems(Slide):
         # RESULT_COLOR = GREEN
         # self.show_example_arithmetic_operations(self.TEX_LOC, DOTS_SCALE_FACTOR, WRITE_RUN_TIME, OPERAND1_COLOR, OPERAND2_COLOR, RESULT_COLOR)
 
-        self.next_slide(notes="Doch wenn wir uns der einfachste Operator—die Addition—noch mal anschauen, kann man schnell ein Problem erkennen. \n\n Wir definieren eine Zahl x, die bei 5 beginnt")
+        self.next_slide(notes="Doch wenn wir etwas mit den einfachsten Operatoren—die Addition und Subtraktion—rumexperimentieren, kann man schnell ein Problem erkennen. \n\n Wir definieren eine Zahl x, die bei 5 beginnt")
         POINTER_CREATION_TIME = 1
         self.prepare_experimentation_add_subtract(self.TEX_LOC, POINTER_CREATION_TIME)
 
-        self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!", loop=True)
+        self.stop_skip_animations()
+        self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!")
         SUMMAND_COLOR = RED
         self.experimentation_add_subtract(SUMMAND_COLOR)
+
+        self.next_slide()
+        self.introduction_whole_numbers()

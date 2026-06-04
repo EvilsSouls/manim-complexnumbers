@@ -20,6 +20,7 @@
     1. What did we do here? -> Extended definition of Numbers to encompass problems we couldn't solve. What if we did this for x^2 = -1?
     2. Shouldn't seem to strange for the equation to not make sense (example of negative numbers (number of apples))
 
+# Ideas
 
 - Polar Coordinates (Clock)
 - Visualization of Ordered Pair -> Grid
@@ -51,3 +52,5 @@
 - Something something about some object changing into another object to represent something or other. I really can't remember, but it was some neat visual idea I had to make something eye-catching.
 
 - Notions cease to exist as Number Systems get extended: Notion of "bigger than" or "smaller than" are rendered useless by complex numbers. That equals saying this point is bigger than that point which makes no sense. Example of Notions falling apart: What number comes after 5? 6? What about 5.5? What about 5.25? What about 5.125? What about 5.0625? What about 5.03125? What about 5.015625? What is the smallest number? 0? What about when have you the whole numbers
+
+- Introduction and perhaps Ending slide of the presentation: somewhat humorous slide with a bunch of rotating letters that all show specific catch phrases such as "No animals were harmed in the making of this presentation", "0% Sugar", "No Artificial Sweeteners", "Not Genetically Modified", "Contains only slight traces of meth", all to actually have a reason to include a "Keine Form von KI wurde für diese Presentation verwendet" note. Might look cool if all of the letters perfectly lined up at the same time
