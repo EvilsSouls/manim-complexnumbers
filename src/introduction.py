@@ -1,9 +1,11 @@
 import math
 
+from manim.utils.rate_functions import RateFunction
 import numpy as np
+from numpy.random import default_rng
 from manim import *
 from manim_slides import Slide
-import MF_Tools as mf_tools
+import MF_Tools as mft
 
 from manim.typing import Vector3DLike
 
@@ -15,7 +17,7 @@ class IntroduceNumberSystems(Slide):
         # self.origin_nat_nums * LEFT is where the '0' point of the number system is located
         # I previously had it simply set to 6.75 * LEFT, however since I need to move it to the right, when introducing whole numbers,
         # it must be a ValueTracker, which can't use a vector as its input
-        self.origin_nat_nums = mf_tools.VT(6.75)
+        self.origin_nat_nums = mft.VT(6.75)
 
         self.START_VAL = 5
         self.SPACING = 0.95
@@ -23,7 +25,17 @@ class IntroduceNumberSystems(Slide):
         self.POINTER_LENGTH = 2
 
         self.NAT_POINT_COLOR = YELLOW
-        self.SUMMAND_COLOR = GREEN
+        self.SUMMAND_COLOR = RED
+
+        # Variable Val Tex with Question Mark (used multiple times, when introducing new numbers)
+        self.qm_variable_val = MathTex(r"x = \text{\large ?}").shift(self.TEX_LOC)
+        # Set styling of question mark
+        question_mark = self.qm_variable_val[0][-1]
+        question_mark.set_color(RED)
+        question_mark.shift((self.qm_variable_val[0][1].get_center()[1] - question_mark.get_center()[1]) * UP) # Vertically center question mark
+
+        # We love gambling
+        self.rng = default_rng()
 
     # Somewhat hacky fix, where sometimes the last frame does not get rendered when presenting
     def next_slide(self, *args, **kwargs):
@@ -33,7 +45,27 @@ class IntroduceNumberSystems(Slide):
     def nl_to_coords(self, nl_val):
         return ~self.origin_nat_nums * LEFT + RIGHT * nl_val * self.SPACING
 
-    # TODO: Add reference that these numbers are the natural numbers, such that it can change in the process (Natural Numbers perhaps fades into symbol that stays in the upper left corner)
+    def introduction(self, AMOUNT_NUMS):
+        school_icon = SVGMobject("assets/school-opensvg-dot-dev.svg", fill_color=GRAY_A, stroke_color=GRAY_A, fill_opacity=1, width=5).shift(UP)
+        label = Text("Zurück in die Grundschule (yay?)", font_size=50).next_to(school_icon, DOWN, buff=1.25)
+        school_icon_label = VGroup(school_icon, label)
+        self.play(Write(school_icon_label), run_time=2.5)
+
+        self.next_slide("Wie heißt die Gruppe dieser Zahlen?") # TODO: Perhaps consider adding a vertical slide for a tip
+        random_numbers = VGroup(MathTex(f"{rand_int}").move_to(3*mft.Vcis(i*TAU/AMOUNT_NUMS)) for (i, rand_int) in enumerate(np.append(self.rng.choice(np.arange(1, 100), size=AMOUNT_NUMS-1, replace=False), 0)))
+        # Hacky
+        self.play(ScaleInPlace(school_icon_label, 20), GrowFromCenter(random_numbers))
+        self.remove(school_icon_label)
+
+        self.next_slide(notes="Zunächst schauen wir uns *nur* die Natürlichen Zahlen an")
+
+        nat_nums_txt = Text("Natürliche Zahlen")
+        self.play(ReplacementTransform(random_numbers, nat_nums_txt))
+
+        self.next_slide(auto_next=True)
+        self.current_environment = MathTex(r"\mathbb{N}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
+        self.play(ReplacementTransform(nat_nums_txt, self.current_environment))
+
     def animate_creation_natural_numbers(self, lag_ratio = 0.5, run_time = 1) -> None:
         self.number_dots = VGroup()
 
@@ -153,7 +185,7 @@ class IntroduceNumberSystems(Slide):
         # Fade in the Bracket and Label and add the Summand to the already existing label of the variable val
         self.play(FadeIn(br, shift=UP),
                   FadeIn(label, shift=UP),
-                  mf_tools.TransformByGlyphMap(
+                  mft.TransformByGlyphMap(
                       self.variable_val, new_variable_val,
                       ([0, 1, 2], [0, 1, 2]),
                       ([], list(summand_glyph_range)),
@@ -173,12 +205,15 @@ class IntroduceNumberSystems(Slide):
         result_glyph_range = np.arange(2, len(newest_variable_val[0])) # The new number starts at glyph index 2, due to index 0 and 1 being x= (sorry for the magic number)
 
         # Move the pointer to the result of the sum / difference and transform the label of the variable val to reflect the actual result of the sum
-        self.play(self.value_tracker.animate.increment_value(val),
-                  mf_tools.TransformByGlyphMap(
-                      new_variable_val, newest_variable_val,
-                      ([0, 1], [0, 1]),
-                      (list(summands_glyph_range), list(result_glyph_range))),
-                  run_time=run_time)
+        self.play(
+            self.value_tracker.animate.increment_value(val),
+            mft.TransformByGlyphMap(
+                new_variable_val, newest_variable_val,
+                ([0, 1], [0, 1]),
+                (list(summands_glyph_range), list(result_glyph_range))
+            ),
+            run_time=run_time,
+        )
 
         self.play(Transform(br, self.pointer.copy()), Transform(label, self.pointer.copy()), run_time=0.33)
         self.remove(br, label)
@@ -205,13 +240,8 @@ class IntroduceNumberSystems(Slide):
         new_dots_len = math.ceil(nat_dots_length / 2) # Somewhat misleading, as soon the negative numbers will be added
         del self.number_dots.submobjects[new_dots_len:nat_dots_length]
 
-        result_variable_val = MathTex(r"x = \text{\Large ?}").shift(self.TEX_LOC)
-        # Set styling of question mark
-        question_mark = result_variable_val[0][-1]
-        question_mark.set_color(RED)
-        question_mark.shift((result_variable_val[0][1].get_center()[1] - question_mark.get_center()[1]) * UP) # Vertically center question mark
-        # Move to 'undefined' place
-        self.slide_incr(-2, 1, result_variable_val)
+        # Move to 'undefined' place (-1)
+        self.slide_incr(-2, 1, self.qm_variable_val)
 
 
         self.next_slide(notes="")
@@ -226,22 +256,34 @@ class IntroduceNumberSystems(Slide):
 
         corrected_variable_val = MathTex(f"x = {self.value_tracker.get_value():.0f}").shift(self.TEX_LOC)
         reversed_neg_nums = self.number_dots[-1:new_dots_len-1:-1]
+        new_environment = MathTex(r"\mathbb{Z}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
         self.play(
             AnimationGroup(
                 *[AnimationGroup(GrowFromCenter(point_label['d']), Write(point_label['l'])) for point_label in reversed_neg_nums],
                 lag_ratio=neg_nums_lag_ratio,
-                run_time=neg_nums_run_time
             ),
-            mf_tools.TransformByGlyphMap(
+            mft.TransformByGlyphMap(
                 self.variable_val,
                 corrected_variable_val,
-            )
+                ([0, 1], [0, 1]),
+                auto_morph=True,
+            ),
+            Transform(self.current_environment, new_environment, run_time=1),
+            run_time=neg_nums_run_time
         )
 
+        # Because TransformByGlyphMap must use ReplacementTransform for some reason, we need this assignment
+        self.variable_val = corrected_variable_val
+
+    def introduction_rational_numbers(self):
+        pass
+
     def construct(self):
+        self.introduction(16)
+
         # self.start_skip_animations()
         self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
-        self.animate_creation_natural_numbers()
+        self.animate_creation_natural_numbers(run_time=2)
 
         ## Probably won't use this.
         ## I fear it might not actually be relevant to the actual presentation and might only serve to distract the listener from what I am saying.
@@ -267,6 +309,9 @@ class IntroduceNumberSystems(Slide):
         self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!")
         self.experimentation_add_subtract()
 
-        # self.stop_skip_animations()
         self.next_slide()
         self.introduction_whole_numbers()
+
+        self.next_slide()
+        self.introduction_rational_numbers()
+        # self.stop_skip_animations()

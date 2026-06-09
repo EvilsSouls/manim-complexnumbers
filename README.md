@@ -54,3 +54,27 @@
 - Notions cease to exist as Number Systems get extended: Notion of "bigger than" or "smaller than" are rendered useless by complex numbers. That equals saying this point is bigger than that point which makes no sense. Example of Notions falling apart: What number comes after 5? 6? What about 5.5? What about 5.25? What about 5.125? What about 5.0625? What about 5.03125? What about 5.015625? What is the smallest number? 0? What about when have you the whole numbers
 
 - Introduction and perhaps Ending slide of the presentation: somewhat humorous slide with a bunch of rotating letters that all show specific catch phrases such as "No animals were harmed in the making of this presentation", "0% Sugar", "No Artificial Sweeteners", "Not Genetically Modified", "Contains only slight traces of meth", all to actually have a reason to include a "Keine Form von KI wurde für diese Presentation verwendet" note. Might look cool if all of the letters perfectly lined up at the same time
+
+---
+
+Entire new idea:
+
+Jonas Beinbart
+Jonas Keinrat
+
+Jonas Weinmarkt!!
+
+- Start with absurd hook: I want to prove, that I couldn't have bought some weird product a week ago or so. Only have bank transactions. Follow bank transactions back (have formula such as x + 7 = 10, x being the Kontostand on that specific day) and do that for the last couple of days until we go back until a day where I have a negative bank balance. But that goes off the scale of all the numbers? Introduce new numbers using principle of negative money.
+
+Weird Product: Magic Mushrooms?
+
+Then the animations would be:
+x + 7 = 10 (pointer has label x + 7)
+x = 10 - 7 (pointer moves by 7 left)
+x = 3
+
+etc. for rest of animations. I could also always fade between me with pizza somehow and the actual animations... generally I don't need to keep the same scene always showing
+
+perhaps for the other numbers I can do something with average and the length of a square.
+
+Reflection: What did we do? We had a problem we couldn't solve, so we introduced new numbers. What if we did that for $\sqrt{-1}$ -> New number $i$. Well no, all numbers multiplied by themselves have to be positive. Sometimes numbers can be incredibly useful, despite being somewhat abstract. Negative numbers? What are negative apples? What is one quarter of a person? Does that count the pizza I ate today? As long as internally consistant a-ok.
