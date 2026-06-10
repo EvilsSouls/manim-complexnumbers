@@ -60,7 +60,7 @@ class IntroduceNumberSystems(Slide):
         self.next_slide(notes="Zunächst schauen wir uns *nur* die Natürlichen Zahlen an")
 
         nat_nums_txt = Text("Natürliche Zahlen")
-        self.play(ReplacementTransform(random_numbers, nat_nums_txt))
+        self.play(ReplacementTransform(random_numbers, nat_nums_txt, path_arc=PI))
 
         self.next_slide(auto_next=True)
         self.current_environment = MathTex(r"\mathbb{N}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
@@ -261,19 +261,28 @@ class IntroduceNumberSystems(Slide):
             AnimationGroup(
                 *[AnimationGroup(GrowFromCenter(point_label['d']), Write(point_label['l'])) for point_label in reversed_neg_nums],
                 lag_ratio=neg_nums_lag_ratio,
+                run_time=neg_nums_run_time
             ),
             mft.TransformByGlyphMap(
                 self.variable_val,
                 corrected_variable_val,
                 ([0, 1], [0, 1]),
                 auto_morph=True,
+                run_time=neg_nums_run_time*0.75
             ),
-            Transform(self.current_environment, new_environment, run_time=1),
-            run_time=neg_nums_run_time
+            # Idea and Implementation of Transformation Animation provided by @nmbj on Discord
+            self.current_environment.animate(remover=True, run_time=neg_nums_run_time*0.75).scale((1,0,1), about_edge=UP),
+            new_environment.save_state().scale((1,0,1), about_edge=DOWN).animate(introducer=True, run_time=neg_nums_run_time*0.75).restore()
         )
+
+        # Sort number_dots
+        self.number_dots.sort(submob_func=lambda dot_with_label: dot_with_label['d'].get_center()[0])
 
         # Because TransformByGlyphMap must use ReplacementTransform for some reason, we need this assignment
         self.variable_val = corrected_variable_val
+        # And because the manual transformation between the old and new number environment
+        # did not update the old variable, we must assign self.current_environment ourselves as well
+        self.current_environment = new_environment
 
     def introduction_rational_numbers(self):
         pass
