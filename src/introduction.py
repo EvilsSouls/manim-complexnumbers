@@ -1,6 +1,5 @@
 import math
 
-from manim.utils.rate_functions import RateFunction
 import numpy as np
 from numpy.random import default_rng
 from manim import *
@@ -8,6 +7,12 @@ from manim_slides import Slide
 import MF_Tools as mft
 
 from manim.typing import Vector3DLike
+
+"""
+@todo:
+- Use Jonas Weinmarkt
+- perhaps make class deterministic (seed)
+"""
 
 class IntroduceNumberSystems(Slide):
     def setup(self) -> None:
@@ -151,7 +156,7 @@ class IntroduceNumberSystems(Slide):
 
     def prepare_experimentation_add_subtract(self, TEX_LOC, POINTER_CREATION_TIME):
         # Create Arrow pointing at the number currently mirrored by ValueTracker with label showing current target number
-        self.value_tracker = ValueTracker(self.START_VAL)
+        self.value_tracker = mft.VT(self.START_VAL)
 
         pointer_loc = self.nl_to_coords(self.value_tracker.get_value())
         self.pointer = Arrow(start=pointer_loc + self.POINTER_LENGTH * DOWN, end=pointer_loc, buff=0.3)
@@ -285,13 +290,23 @@ class IntroduceNumberSystems(Slide):
         self.current_environment = new_environment
 
     def introduction_rational_numbers(self):
-        pass
+        new_variable_val = MathTex(f"x={self.START_VAL}").shift(self.TEX_LOC)
+
+        self.play(
+            self.value_tracker @ 5,
+            mft.TransformByGlyphMap(
+                self.variable_val,
+                new_variable_val,
+                ([0, 1], [0, 1]),
+                auto_morph=True
+            )
+        )
 
     def construct(self):
+        # self.start_skip_animations()
+        self.next_slide()
         self.introduction(16)
 
-        # self.start_skip_animations()
-        self.next_slide(notes="Vorstellen wir sind in der Grundschule: Hier haben wir alle natürliche Zahlen")
         self.animate_creation_natural_numbers(run_time=2)
 
         ## Probably won't use this.
@@ -321,6 +336,6 @@ class IntroduceNumberSystems(Slide):
         self.next_slide()
         self.introduction_whole_numbers()
 
-        self.next_slide()
-        self.introduction_rational_numbers()
         # self.stop_skip_animations()
+        self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps
+        self.introduction_rational_numbers()
