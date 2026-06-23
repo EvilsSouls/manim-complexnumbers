@@ -1,4 +1,5 @@
 import math
+from variable_val import VariableVal
 
 import numpy as np
 from numpy.random import default_rng
