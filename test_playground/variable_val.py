@@ -78,21 +78,22 @@ class VariableVal(MathTex):
         pos_diff = self.tex_location - equal_sign_glyph.get_center()
         self.shift(pos_diff)
 
-    def become_transform_target(self, transform_target):
-        assert not(self.transform_target is None), "No transform target found"
+    def become_transform_target(self):
+        assert self.transform_target is not None, "No transform target found"
 
-        self.tex_location = transform_target.tex_location
-        self.lhs_prt1 = transform_target.lhs_prt1
-        self.lhs_prt2 = transform_target.lhs_prt2
-        self.rhs_prt1 = transform_target.rhs_prt1
-        self.rhs_prt2 = transform_target.rhs_prt2
-        self.lhs_prt1_color = transform_target.lhs_prt1_color
-        self.lhs_prt2_color = transform_target.lhs_prt2_color
-        self.rhs_prt1_color = transform_target.rhs_prt1_color
-        self.rhs_prt2_color = transform_target.rhs_prt2_color
+        self.tex_location = self.transform_target.tex_location
+        self.lhs_prt1 = self.transform_target.lhs_prt1
+        self.lhs_prt2 = self.transform_target.lhs_prt2
+        self.rhs_prt1 = self.transform_target.rhs_prt1
+        self.rhs_prt2 = self.transform_target.rhs_prt2
+        self.lhs_prt1_color = self.transform_target.lhs_prt1_color
+        self.lhs_prt2_color = self.transform_target.lhs_prt2_color
+        self.rhs_prt1_color = self.transform_target.rhs_prt1_color
+        self.rhs_prt2_color = self.transform_target.rhs_prt2_color
+
+        self.become(self.transform_target)
+
         self.transform_target = None
-
-        self.become(transform_target)
 
     """
     Any arguments left empty will default to the value of self
@@ -140,11 +141,6 @@ class VariableVal(MathTex):
         dest_rhs_prt1_range = np.arange(*self.transform_target.get_rhs_prt1_range())
         dest_rhs_prt2_range = np.arange(*self.transform_target.get_rhs_prt2_range())
 
-        # print(f"Perform Arithmetic: {perform_arithmetic}")
-        # print(f"src_l1: {src_lhs_prt1_range} \n src_l2: {src_lhs_prt2_range} \n src_r1: {src_rhs_prt1_range} \n src_r2: {src_rhs_prt2_range} \n\n")
-        # print(f"dest_l1: {dest_lhs_prt1_range} \n dest_l2: {dest_lhs_prt2_range} \n dest_r1: {dest_rhs_prt1_range} \n dest_r2: {dest_rhs_prt2_range} \n\n")
-        # print("----------------\n\n\n")
-
         # Create Transformation Tuples
         if perform_arithmetic:
             transformation_tuples = [
@@ -159,10 +155,10 @@ class VariableVal(MathTex):
                 (list(src_lhs_prt1_range), list(dest_lhs_prt1_range)),
                 ([self.get_equal_sign_index()], [self.transform_target.get_equal_sign_index()]),
                 (list(src_rhs_prt1_range), list(dest_rhs_prt1_range)),
-                (list(src_lhs_prt2_range), list(dest_rhs_prt2_range), {"path_arc": PI/2}),
+                (list(src_lhs_prt2_range), list(dest_rhs_prt2_range), {"path_arc": PI}),
+                # Add Comment here
             ]
 
-        # print(transformation_tuples)
         animation = mft.TransformByGlyphMap(
             self,
             self.transform_target,
@@ -182,12 +178,12 @@ class VariableVal(MathTex):
             scene.remove(self.mobA)
 
             # Cleanse all remaining orphaned submobjects from introducers
-            # You do not realize the amounts of debugging I had to do to find
+            # You do not comprehend the amounts of debugging I had to do to find
             # this incredibly hacky solution inside an already existing monkey patch
             scene.add(self.mobB)
             scene.remove(self.mobB)
 
-            self.mobA.become_transform_target(self.mobB)
+            self.mobA.become_transform_target()
 
             scene.add(self.mobA)
         animation.clean_up_from_scene = patched_clean_up_meth.__get__(animation)
@@ -196,21 +192,23 @@ class VariableVal(MathTex):
 
 class VariableValTest(Slide):
     def construct(self):
-        variable_val = VariableVal(UP * 3, "x", "", "5", "")
-        self.play(Write(variable_val), run_time=1)
+        # variable_val = VariableVal(UP * 3, "x", "", "5", "")
+        # # self.play(Write(variable_val), run_time=1)
+        # self.add(variable_val)
+        #
+        # transform_animation_1 = variable_val.return_translate_animation(new_lhs_prt2="+3", perform_arithmetic=True)
+        # self.play(transform_animation_1)
+        # print(self.mobjects)
 
-        transform_animation_1 = variable_val.return_translate_animation(new_lhs_prt2="+3", perform_arithmetic=True)
-        self.play(transform_animation_1)
-        print(self.mobjects)
-
-        self.wait(2)
+        # self.wait(2)
+        variable_val = VariableVal(UP * 3, "x", "+3", "5", "")
 
         transform_animation_2 = variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="-3", perform_arithmetic=False)
         self.play(transform_animation_2)
         print(self.mobjects)
 
-        self.wait(2)
-
-        transform_animation_3 = variable_val.return_translate_animation(new_rhs_prt1="2", new_rhs_prt2="", perform_arithmetic=True)
-        self.play(transform_animation_3)
-        print(self.mobjects)
+        # self.wait(2)
+        #
+        # transform_animation_3 = variable_val.return_translate_animation(new_rhs_prt1="2", new_rhs_prt2="", perform_arithmetic=True)
+        # self.play(transform_animation_3)
+        # print(self.mobjects)

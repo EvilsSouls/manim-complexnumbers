@@ -5,7 +5,7 @@ import MF_Tools as mft
 from manim.typing import Vector3DLike
 from manim.utils.color import ManimColor
 
-class VariableVal():
+class VariableVal(MathTex):
     def __init__(
         self,
         tex_location: Vector3DLike,
@@ -30,6 +30,8 @@ class VariableVal():
         self.rhs_prt1_color = rhs_prt1_color
         self.rhs_prt2_color = rhs_prt2_color
 
+        self.transform_target: None | VariableVal = None
+
         self.update_mobject()
 
     def get_string(self) -> str:
@@ -53,23 +55,39 @@ class VariableVal():
         return (start_index, start_index + len(self.rhs_prt2))
 
     def get_equal_sign_index(self) -> int:
-        # print(f"equal_ind: {len(self.lhs_prt1) + len(self.lhs_prt2)}")
         return len(self.lhs_prt1) + len(self.lhs_prt2)
 
     def update_mobject(self) -> None:
-        # print(f"string: {self.get_string()}")
-        self.mobject = MathTex(self.get_string())
+        # Initializes MathTex object
+        super().__init__(self.get_string())
 
-        # Set colors
-        VGroup(self.mobject[0].submobjects[slice(*self.get_lhs_prt1_range())]).set_color(self.lhs_prt1_color)
-        VGroup(self.mobject[0].submobjects[slice(*self.get_lhs_prt2_range())]).set_color(self.lhs_prt2_color)
-        VGroup(self.mobject[0].submobjects[slice(*self.get_rhs_prt1_range())]).set_color(self.rhs_prt1_color)
-        VGroup(self.mobject[0].submobjects[slice(*self.get_rhs_prt2_range())]).set_color(self.rhs_prt2_color)
+        # Set colors of MathTex object
+        VGroup(self[0].submobjects[slice(*self.get_lhs_prt1_range())]).set_color(self.lhs_prt1_color)
+        VGroup(self[0].submobjects[slice(*self.get_lhs_prt2_range())]).set_color(self.lhs_prt2_color)
+        VGroup(self[0].submobjects[slice(*self.get_rhs_prt1_range())]).set_color(self.rhs_prt1_color)
+        VGroup(self[0].submobjects[slice(*self.get_rhs_prt2_range())]).set_color(self.rhs_prt2_color)
 
-        # Update Position
-        equal_sign_glyph = self.mobject[0].submobjects[self.get_equal_sign_index()]
+        # Update Position to center equal sign on screen center
+        equal_sign_glyph = self[0].submobjects[self.get_equal_sign_index()]
         pos_diff = self.tex_location - equal_sign_glyph.get_center()
-        self.mobject.shift(pos_diff)
+        self.shift(pos_diff)
+
+    def become_transform_target(self):
+        assert self.transform_target is not None, "No transform target found"
+
+        self.tex_location = self.transform_target.tex_location
+        self.lhs_prt1 = self.transform_target.lhs_prt1
+        self.lhs_prt2 = self.transform_target.lhs_prt2
+        self.rhs_prt1 = self.transform_target.rhs_prt1
+        self.rhs_prt2 = self.transform_target.rhs_prt2
+        self.lhs_prt1_color = self.transform_target.lhs_prt1_color
+        self.lhs_prt2_color = self.transform_target.lhs_prt2_color
+        self.rhs_prt1_color = self.transform_target.rhs_prt1_color
+        self.rhs_prt2_color = self.transform_target.rhs_prt2_color
+
+        self.become(self.transform_target)
+
+        self.transform_target = None
 
     """
     Any arguments left empty will default to the value of self
@@ -94,7 +112,6 @@ class VariableVal():
     ) -> mft.TransformByGlyphMap:
 
         kwargs = {}
-
         kwargs["tex_location"] = self.tex_location if new_tex_location is None else new_tex_location
         kwargs["lhs_prt1"] = self.lhs_prt1 if new_lhs_prt1 is None else new_lhs_prt1
         kwargs["lhs_prt2"] = self.lhs_prt2 if new_lhs_prt2 is None else new_lhs_prt2
@@ -105,51 +122,64 @@ class VariableVal():
         kwargs["rhs_prt1_color"] = self.rhs_prt1_color if new_rhs_prt1_color is None else new_rhs_prt1_color
         kwargs["rhs_prt2_color"] = self.rhs_prt2_color if new_rhs_prt2_color is None else new_rhs_prt2_color
 
-        self.transform_object = VariableVal(**kwargs)
+        self.transform_target = VariableVal(**kwargs)
 
         src_lhs_prt1_range = np.arange(*self.get_lhs_prt1_range())
         src_lhs_prt2_range = np.arange(*self.get_lhs_prt2_range())
         src_rhs_prt1_range = np.arange(*self.get_rhs_prt1_range())
         src_rhs_prt2_range = np.arange(*self.get_rhs_prt2_range())
 
-        dest_lhs_prt1_range = np.arange(*self.transform_object.get_lhs_prt1_range())
-        dest_lhs_prt2_range = np.arange(*self.transform_object.get_lhs_prt2_range())
-        dest_rhs_prt1_range = np.arange(*self.transform_object.get_rhs_prt1_range())
-        dest_rhs_prt2_range = np.arange(*self.transform_object.get_rhs_prt2_range())
-
-        # print(f"Perform Arithmetic: {perform_arithmetic}")
-        # print(f"src_l1: {src_lhs_prt1_range} \n src_l2: {src_lhs_prt2_range} \n src_r1: {src_rhs_prt1_range} \n src_r2: {src_rhs_prt2_range} \n\n")
-        # print(f"dest_l1: {dest_lhs_prt1_range} \n dest_l2: {dest_lhs_prt2_range} \n dest_r1: {dest_rhs_prt1_range} \n dest_r2: {dest_rhs_prt2_range} \n\n")
-        # print("----------------\n\n\n")
+        dest_lhs_prt1_range = np.arange(*self.transform_target.get_lhs_prt1_range())
+        dest_lhs_prt2_range = np.arange(*self.transform_target.get_lhs_prt2_range())
+        dest_rhs_prt1_range = np.arange(*self.transform_target.get_rhs_prt1_range())
+        dest_rhs_prt2_range = np.arange(*self.transform_target.get_rhs_prt2_range())
 
         # Create Transformation Tuples
         if perform_arithmetic:
             transformation_tuples = [
                 (list(src_lhs_prt1_range), list(dest_lhs_prt1_range)),
-                (list(src_lhs_prt2_range), list(dest_lhs_prt2_range), {"delay": 0.5}),
-                ([self.get_equal_sign_index()], [self.transform_object.get_equal_sign_index()]),
+                (list(src_lhs_prt2_range), list(dest_lhs_prt2_range), {"delay":0.5}),
+                ([self.get_equal_sign_index()], [self.transform_target.get_equal_sign_index()]),
                 (list(np.concatenate((src_rhs_prt1_range, src_rhs_prt2_range))), list(dest_rhs_prt1_range)),
-                # ([], list(dest_lhs_prt2_range)) # Should not really be needed? I am really unsure of myself
+                # dest_rhs_prt2_range is not mentioned here, since it is assumed that it should be empty.
+                # I can't really include it as an introducer, as an empty entry will cause errors in MF_Tools
             ]
         else:
             transformation_tuples = [
                 (list(src_lhs_prt1_range), list(dest_lhs_prt1_range)),
-                ([self.get_equal_sign_index()], [self.transform_object.get_equal_sign_index()]),
+                ([self.get_equal_sign_index()], [self.transform_target.get_equal_sign_index()]),
                 (list(src_rhs_prt1_range), list(dest_rhs_prt1_range)),
-                (list(src_lhs_prt2_range), list(dest_rhs_prt2_range), {"path_arc": PI/2}),
-                # (list(src_rhs_prt2_range), []) # Should also probably not be needed
+                (list(src_lhs_prt2_range), list(dest_rhs_prt2_range), {"path_arc": PI}),
+                # See above comment for lack of src_rhs_prt2_range
             ]
 
-        # print(transformation_tuples)
         animation = mft.TransformByGlyphMap(
-            self.mobject,
-            self.transform_object.mobject,
+            self,
+            self.transform_target,
             *transformation_tuples,
             introduce_individually=True,
             default_introducer=Write,
-            default_transformer=ReplacementTransform,
+            default_transformer=Transform,
             **transform_kwargs,
         )
 
-        return animation
+        # Incredibly hacky monkey patching that overrides the default behavior, which assumes that
+        # ReplacementTransform or something similar is used, meaning that mobB should be added to
+        # the screen and the initial state of mobA reset
+        def patched_clean_up_meth(self, scene):
+            # Call the clean up method of AnimationGroup
+            super(mft.TransformByGlyphMap, self).clean_up_from_scene(scene)
+            scene.remove(self.mobA)
 
+            # Cleanse all remaining orphaned submobjects from introducers
+            # You do not comprehend the amounts of debugging I had to do to find
+            # this incredibly hacky solution inside an already existing monkey patch
+            scene.add(self.mobB)
+            scene.remove(self.mobB)
+
+            self.mobA.become_transform_target()
+
+            scene.add(self.mobA)
+        animation.clean_up_from_scene = patched_clean_up_meth.__get__(animation)
+
+        return animation
