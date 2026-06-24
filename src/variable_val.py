@@ -1,5 +1,6 @@
 import numpy as np
 from manim import *
+from manim_slides import Slide
 import MF_Tools as mft
 
 from manim.typing import Vector3DLike
@@ -37,25 +38,40 @@ class VariableVal(MathTex):
     def get_string(self) -> str:
         return self.lhs_prt1 + self.lhs_prt2 + "=" + self.rhs_prt1 + self.rhs_prt2
 
+    # Incredibly Inefficient
+    # TODO: Perhaps change this entire class to not use MF-Tools and instead use the MathTex parts and
+    # some custom logic to automatically use Introducer or Remover or Translate
+    def get_lhs_prt1_len(self) -> int:
+        return len(MathTex(self.lhs_prt1).submobjects[0]) if self.lhs_prt1 else 0
+
+    def get_lhs_prt2_len(self) -> int:
+        return len(MathTex(self.lhs_prt2).submobjects[0]) if self.lhs_prt2 else 0
+
+    def get_rhs_prt1_len(self) -> int:
+        return len(MathTex(self.rhs_prt1).submobjects[0]) if self.rhs_prt1 else 0
+
+    def get_rhs_prt2_len(self) -> int:
+        return len(MathTex(self.rhs_prt2).submobjects[0]) if self.rhs_prt2 else 0
+
     def get_lhs_prt1_range(self) -> tuple[int, int]:
-        return (0, len(self.lhs_prt1))
+        return (0, self.get_lhs_prt1_len())
 
     def get_lhs_prt2_range(self) -> tuple[int, int]:
-        start_index = len(self.lhs_prt1)
-        return (start_index, start_index + len(self.lhs_prt2))
+        start_index = self.get_lhs_prt1_len()
+        return (start_index, start_index + self.get_lhs_prt2_len())
 
     def get_rhs_prt1_range(self) -> tuple[int, int]:
         # Must add one due to equal sign
-        start_index = len(self.lhs_prt1) + len(self.lhs_prt2) + 1
-        return (start_index, start_index + len(self.rhs_prt1))
+        start_index = self.get_lhs_prt1_len() + self.get_lhs_prt2_len() + 1
+        return (start_index, start_index + self.get_rhs_prt1_len())
 
     def get_rhs_prt2_range(self) -> tuple[int, int]:
         # Once again have to add one due to the equal sign
-        start_index = len(self.lhs_prt1) + len(self.lhs_prt2) + len(self.rhs_prt1) + 1
-        return (start_index, start_index + len(self.rhs_prt2))
+        start_index = self.get_lhs_prt1_len() + self.get_lhs_prt2_len() + self.get_rhs_prt1_len() + 1
+        return (start_index, start_index + self.get_rhs_prt2_len())
 
     def get_equal_sign_index(self) -> int:
-        return len(self.lhs_prt1) + len(self.lhs_prt2)
+        return self.get_lhs_prt1_len() + self.get_lhs_prt2_len()
 
     def update_mobject(self) -> None:
         # Initializes MathTex object
@@ -75,19 +91,22 @@ class VariableVal(MathTex):
     def become_transform_target(self):
         assert self.transform_target is not None, "No transform target found"
 
-        self.tex_location = self.transform_target.tex_location
-        self.lhs_prt1 = self.transform_target.lhs_prt1
-        self.lhs_prt2 = self.transform_target.lhs_prt2
-        self.rhs_prt1 = self.transform_target.rhs_prt1
-        self.rhs_prt2 = self.transform_target.rhs_prt2
-        self.lhs_prt1_color = self.transform_target.lhs_prt1_color
-        self.lhs_prt2_color = self.transform_target.lhs_prt2_color
-        self.rhs_prt1_color = self.transform_target.rhs_prt1_color
-        self.rhs_prt2_color = self.transform_target.rhs_prt2_color
+        # Copy all kwargs from self.transform_target over
+        kwargs = {}
+        kwargs["tex_location"] = self.transform_target.tex_location
+        kwargs["lhs_prt1"] = self.transform_target.lhs_prt1
+        kwargs["lhs_prt2"] = self.transform_target.lhs_prt2
+        kwargs["rhs_prt1"] = self.transform_target.rhs_prt1
+        kwargs["rhs_prt2"] = self.transform_target.rhs_prt2
+        kwargs["lhs_prt1_color"] = self.transform_target.lhs_prt1_color
+        kwargs["lhs_prt2_color"] = self.transform_target.lhs_prt2_color
+        kwargs["rhs_prt1_color"] = self.transform_target.rhs_prt1_color
+        kwargs["rhs_prt2_color"] = self.transform_target.rhs_prt2_color
 
-        self.become(self.transform_target)
-
-        self.transform_target = None
+        # Reinitialize VariableVal to regenerate all submobject glyphs with attributes taken from self.transform_target
+        # Can't use self.become() due to a lower length of submobjects in the self.transform_target mobject causing
+        # ghost mobjects
+        self.__init__(**kwargs)
 
     """
     Any arguments left empty will default to the value of self
@@ -169,6 +188,8 @@ class VariableVal(MathTex):
         def patched_clean_up_meth(self, scene):
             # Call the clean up method of AnimationGroup
             super(mft.TransformByGlyphMap, self).clean_up_from_scene(scene)
+            # Clean all submobjects from scene to add them back after reinitializing self to self.transform_target
+            scene.add(self.mobA)
             scene.remove(self.mobA)
 
             # Cleanse all remaining orphaned submobjects from introducers

@@ -170,61 +170,52 @@ class IntroduceNumberSystems(Slide):
         self.pointer_label.add_updater(lambda m: m.next_to(self.pointer, DOWN))
 
         self.variable_val = MathTex(f"x = {self.START_VAL:.0f}").shift(TEX_LOC)
+        self.variable_val = VariableVal(TEX_LOC, "x", "", f"{self.START_VAL:.0f}")
         TEX_WRITING_TIME = POINTER_CREATION_TIME / 2
         self.play(Write(self.variable_val), run_time=TEX_WRITING_TIME)
 
-    def slide_incr(self, val: float, run_time: float, result_variable_val_overwrite: MathTex | None = None):
-        formatted_val_string = f"{'+' if val >= 0 else ''}" + str(val)
+    def slide_incr(self, val: float, run_time: float, unknown_result = False):
+        def format_val_string(val):
+            return f"{'+' if val >= 0 else ''}" + str(val)
+
+        lhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2=format_val_string(-val), perform_arithmetic=True)
+        self.play(lhs_summand_transform, run_time=0.8)
 
         # Align Brace to invisible line that spans the entire sliding animation
         line_loc_1 = self.nl_to_coords(self.value_tracker.get_value()) + self.POINTER_LENGTH * DOWN
         line_loc_2 = self.nl_to_coords(self.value_tracker.get_value() + val) + self.POINTER_LENGTH * DOWN
         line = Line(line_loc_1, line_loc_2)
         br = Brace(line, buff=0.5, sharpness=2, color=self.SUMMAND_COLOR) # MAGIC NUMBERS AAaaAAAAA
-        label = MathTex(formatted_val_string, color=self.SUMMAND_COLOR).next_to(br, DOWN)
+        label = MathTex(format_val_string(val), color=self.SUMMAND_COLOR).next_to(br, DOWN)
 
         # New Variable val with added summand (for example x = 3 + 2)
-        new_variable_val = MathTex(f"x = {self.value_tracker.get_value():.0f} {formatted_val_string}").shift(self.TEX_LOC).align_to(self.variable_val, LEFT)
-        summand_glyph_range = np.arange(len(self.variable_val[0]), len(new_variable_val[0])) # The range of all glyph indices for the newly added summand
-        for i in summand_glyph_range: new_variable_val[0][i].set_color(self.SUMMAND_COLOR) # Set color of each glyph mobject individually TODO: vectorize perhaps
+        rhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2=format_val_string(val), perform_arithmetic=False)
 
         # Fade in the Bracket and Label and add the Summand to the already existing label of the variable val
-        self.play(FadeIn(br, shift=UP),
-                  FadeIn(label, shift=UP),
-                  mft.TransformByGlyphMap(
-                      self.variable_val, new_variable_val,
-                      ([0, 1, 2], [0, 1, 2]),
-                      ([], list(summand_glyph_range)),
-                      introduce_individually=True,
-                      default_introducer=Write),
-                  run_time=0.4)
+        self.play(
+            FadeIn(br, shift=UP),
+            FadeIn(label, shift=UP),
+            rhs_summand_transform,
+            run_time=0.8
+        )
 
         self.wait(0.3)
 
-        if result_variable_val_overwrite is None:
-            # New Variable Val with updated number
-            newest_variable_val = MathTex(f"x = {self.value_tracker.get_value() + val:.0f}").shift(self.TEX_LOC)
+        if unknown_result is False:
+            # Transform to the sum of both summands
+            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value() + val:.0f}", new_rhs_prt2="", perform_arithmetic=True)
         else:
-            newest_variable_val = result_variable_val_overwrite
-
-        summands_glyph_range = np.arange(2, len(new_variable_val[0]))
-        result_glyph_range = np.arange(2, len(newest_variable_val[0])) # The new number starts at glyph index 2, due to index 0 and 1 being x= (sorry for the magic number)
+            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=r"\text{\large ?}", new_rhs_prt2="", new_rhs_prt1_color=RED, perform_arithmetic=True)
 
         # Move the pointer to the result of the sum / difference and transform the label of the variable val to reflect the actual result of the sum
         self.play(
             self.value_tracker.animate.increment_value(val),
-            mft.TransformByGlyphMap(
-                new_variable_val, newest_variable_val,
-                ([0, 1], [0, 1]),
-                (list(summands_glyph_range), list(result_glyph_range))
-            ),
+            transform_to_sum,
             run_time=run_time,
         )
 
         self.play(Transform(br, self.pointer.copy()), Transform(label, self.pointer.copy()), run_time=0.33)
         self.remove(br, label)
-
-        self.variable_val = newest_variable_val
 
     def experimentation_add_subtract(self):
         self.slide_incr(1, 0.75)
@@ -247,8 +238,7 @@ class IntroduceNumberSystems(Slide):
         del self.number_dots.submobjects[new_dots_len:nat_dots_length]
 
         # Move to 'undefined' place (-1)
-        self.slide_incr(-2, 1, self.qm_variable_val)
-
+        self.slide_incr(-2, 1, True)
 
         self.next_slide(notes="")
 
@@ -260,7 +250,7 @@ class IntroduceNumberSystems(Slide):
             dot_label.shift((dot.get_center()[0] - dot_label[0][1].get_center()[0]) * RIGHT)
             self.number_dots.add(VDict([('d', dot), ('l', dot_label)]))
 
-        corrected_variable_val = MathTex(f"x = {self.value_tracker.get_value():.0f}").shift(self.TEX_LOC)
+        transform_to_corrected_variable_val = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value():.0f}", new_rhs_prt1_color=WHITE, perform_arithmetic=True)
         reversed_neg_nums = self.number_dots[-1:new_dots_len-1:-1]
         new_environment = MathTex(r"\mathbb{Z}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
         self.play(
@@ -269,13 +259,7 @@ class IntroduceNumberSystems(Slide):
                 lag_ratio=neg_nums_lag_ratio,
                 run_time=neg_nums_run_time
             ),
-            mft.TransformByGlyphMap(
-                self.variable_val,
-                corrected_variable_val,
-                ([0, 1], [0, 1]),
-                auto_morph=True,
-                run_time=neg_nums_run_time*0.75
-            ),
+            transform_to_corrected_variable_val,
             # Idea and Implementation of Transformation Animation provided by @nmbj on Discord
             self.current_environment.animate(remover=True, run_time=neg_nums_run_time*0.75).scale((1,0,1), about_edge=UP),
             new_environment.save_state().scale((1,0,1), about_edge=DOWN).animate(introducer=True, run_time=neg_nums_run_time*0.75).restore()
@@ -284,23 +268,16 @@ class IntroduceNumberSystems(Slide):
         # Sort number_dots
         self.number_dots.sort(submob_func=lambda dot_with_label: dot_with_label['d'].get_center()[0])
 
-        # Because TransformByGlyphMap must use ReplacementTransform for some reason, we need this assignment
-        self.variable_val = corrected_variable_val
         # And because the manual transformation between the old and new number environment
         # did not update the old variable, we must assign self.current_environment ourselves as well
         self.current_environment = new_environment
 
     def introduction_rational_numbers(self):
-        new_variable_val = MathTex(f"x={self.START_VAL}").shift(self.TEX_LOC)
+        transform_back_to_original = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.START_VAL}", perform_arithmetic=True)
 
         self.play(
             self.value_tracker @ 5,
-            mft.TransformByGlyphMap(
-                self.variable_val,
-                new_variable_val,
-                ([0, 1], [0, 1]),
-                auto_morph=True
-            )
+            transform_back_to_original
         )
 
     def construct(self):
@@ -337,6 +314,9 @@ class IntroduceNumberSystems(Slide):
         self.next_slide()
         self.introduction_whole_numbers()
 
+        self.wait(5)
+        print(self.mobjects)
+
         # self.stop_skip_animations()
-        self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps
+        self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
         self.introduction_rational_numbers()
