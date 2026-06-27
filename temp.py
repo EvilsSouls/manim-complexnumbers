@@ -200,14 +200,54 @@ class VariableVal(MathTex):
             # this incredibly hacky solution inside an already existing monkey patch
             scene.add(self.mobB)
             scene.remove(self.mobB)
-            # scene.remove(self.mobB.get_family())
+            scene.remove(self.mobB.family)
 
             self.mobA.become_transform_target()
 
-            # scene.add(self.mobA)
-            # scene.remove(self.mobA)
             scene.add(self.mobA)
+            scene.remove(self.mobA)
+            # scene.add(self.mobA)
 
         animation.clean_up_from_scene = patched_clean_up_meth.__get__(animation)
 
         return animation
+
+class TestVariableVal(Slide):
+    def construct(self):
+        self.variable_val = VariableVal(UP * 3, "x", "", "5")
+        transform_1 = self.variable_val.return_translate_animation(new_lhs_prt2="-3", perform_arithmetic=True)
+        self.play(transform_1)
+
+        self.wait()
+
+        transform_2 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="+3", perform_arithmetic=False)
+        self.play(transform_2)
+
+        self.wait()
+
+        transform_3 = self.variable_val.return_translate_animation(new_rhs_prt1="8", new_rhs_prt2="", perform_arithmetic=True)
+        self.play(transform_3)
+
+        self.wait()
+
+        # transform_4 = self.variable_val.return_translate_animation(new_lhs_prt2="+9", new_rhs_prt2="", perform_arithmetic=True)
+        # self.play(transform_4)
+        #
+        # transform_5 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="-9", perform_arithmetic=False)
+        # self.play(transform_5)
+
+        self.wait()
+
+        transform_6 = self.variable_val.return_translate_animation(new_rhs_prt1="-1", new_rhs_prt2="", perform_arithmetic=True)
+        self.play(transform_6)
+
+        self.wait()
+
+        self.play(
+            *(Circumscribe(current_mobject) for current_mobject in self.variable_val.submobjects[0])
+        )
+
+        self.wait()
+
+        transform_7 = self.variable_val.return_translate_animation(new_rhs_prt1="5", perform_arithmetic=True)
+        self.play(transform_7)
