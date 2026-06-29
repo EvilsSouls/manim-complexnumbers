@@ -1,10 +1,12 @@
-import numpy as np
 from manim import *
-from manim_slides import Slide
+from manim.mobject.text.tex_mobject import MathTexPart
 import MF_Tools as mft
 
 from manim.typing import Vector3DLike
 from manim.utils.color import ManimColor
+from typing import cast
+
+from enum import Enum
 
 class VariableVal(MathTex):
     def __init__(
@@ -18,74 +20,104 @@ class VariableVal(MathTex):
         lhs_prt2_color=WHITE,
         rhs_prt1_color=WHITE,
         rhs_prt2_color=RED,
+        *,
+        separator="=",
     ):
         self.tex_location = tex_location
 
-        self.lhs_prt1 = lhs_prt1
-        self.lhs_prt2 = lhs_prt2
-        self.rhs_prt1 = rhs_prt1
-        self.rhs_prt2 = rhs_prt2
+        self._l1_str = lhs_prt1
+        self._l2_str = lhs_prt2
+        self._r1_str = rhs_prt1
+        self._r2_str = rhs_prt2
 
-        self.lhs_prt1_color = lhs_prt1_color
-        self.lhs_prt2_color = lhs_prt2_color
-        self.rhs_prt1_color = rhs_prt1_color
-        self.rhs_prt2_color = rhs_prt2_color
+        self.separator = separator
+
+        self.zero_width_char = r"\hskip 0pt"
+
+        self.l1_color = lhs_prt1_color
+        self.l2_color = lhs_prt2_color
+        self.r1_color = rhs_prt1_color
+        self.r2_color = rhs_prt2_color
 
         self.transform_target: None | VariableVal = None
 
+        self.PartIndices = Enum("PartIndices", [
+            ("L1_INDEX", 0),
+            ("L2_INDEX", 1),
+            ("EQ_INDEX", 2),
+            ("R1_INDEX", 3),
+            ("R2_INDEX", 4)
+        ])
+
         self.update_mobject()
 
-    def get_string(self) -> str:
-        return self.lhs_prt1 + self.lhs_prt2 + "=" + self.rhs_prt1 + self.rhs_prt2
+    # Set setters and getters to automatically use a 0-width latex character instead of an empty string
+    @property
+    def l1_str(self):
+        """The l1_str property."""
+        return self._l1_str if self._l1_str else self.zero_width_char
 
-    # Incredibly Inefficient
-    # TODO: Perhaps change this entire class to not use MF-Tools and instead use the MathTex parts and
-    # some custom logic to automatically use Introducer or Remover or Translate
-    def get_lhs_prt1_len(self) -> int:
-        return len(MathTex(self.lhs_prt1).submobjects[0]) if self.lhs_prt1 else 0
+    @l1_str.setter
+    def l1_str(self, value):
+        self._l1_str = value
 
-    def get_lhs_prt2_len(self) -> int:
-        return len(MathTex(self.lhs_prt2).submobjects[0]) if self.lhs_prt2 else 0
 
-    def get_rhs_prt1_len(self) -> int:
-        return len(MathTex(self.rhs_prt1).submobjects[0]) if self.rhs_prt1 else 0
+    @property
+    def l2_str(self):
+        """The l2_str property."""
+        return self._l2_str if self._l2_str else self.zero_width_char
 
-    def get_rhs_prt2_len(self) -> int:
-        return len(MathTex(self.rhs_prt2).submobjects[0]) if self.rhs_prt2 else 0
+    @l2_str.setter
+    def l2_str(self, value):
+        self._l2_str = value
 
-    def get_lhs_prt1_range(self) -> tuple[int, int]:
-        return (0, self.get_lhs_prt1_len())
 
-    def get_lhs_prt2_range(self) -> tuple[int, int]:
-        start_index = self.get_lhs_prt1_len()
-        return (start_index, start_index + self.get_lhs_prt2_len())
+    @property
+    def r1_str(self):
+        """The r1_str property."""
+        return self._r1_str if self._r1_str else self.zero_width_char
 
-    def get_rhs_prt1_range(self) -> tuple[int, int]:
-        # Must add one due to equal sign
-        start_index = self.get_lhs_prt1_len() + self.get_lhs_prt2_len() + 1
-        return (start_index, start_index + self.get_rhs_prt1_len())
+    @r1_str.setter
+    def r1_str(self, value):
+        self._r1_str = value
 
-    def get_rhs_prt2_range(self) -> tuple[int, int]:
-        # Once again have to add one due to the equal sign
-        start_index = self.get_lhs_prt1_len() + self.get_lhs_prt2_len() + self.get_rhs_prt1_len() + 1
-        return (start_index, start_index + self.get_rhs_prt2_len())
 
-    def get_equal_sign_index(self) -> int:
-        return self.get_lhs_prt1_len() + self.get_lhs_prt2_len()
+    @property
+    def r2_str(self):
+        """The r2_str property."""
+        return self._r2_str if self._r2_str else self.zero_width_char
+
+    @r2_str.setter
+    def r2_str(self, value):
+        self._r2_str = value
+
+    def get_l1_mobj(self) -> MathTexPart:
+        return cast(MathTexPart, self.submobjects[self.PartIndices.L1_INDEX.value])
+
+    def get_l2_mobj(self) -> MathTexPart:
+        return cast(MathTexPart, self.submobjects[self.PartIndices.L2_INDEX.value])
+
+    def get_equal_sign_mobj(self) -> MathTexPart:
+        return cast(MathTexPart, self.submobjects[self.PartIndices.EQ_INDEX.value])
+
+    def get_r1_mobj(self) -> MathTexPart:
+        return cast(MathTexPart, self.submobjects[self.PartIndices.R1_INDEX.value])
+
+    def get_r2_mobj(self) -> MathTexPart:
+        return cast(MathTexPart, self.submobjects[self.PartIndices.R2_INDEX.value])
 
     def update_mobject(self) -> None:
-        # Initializes MathTex object
-        super().__init__(self.get_string())
+        # Initialize MathTex object, with each part being its own SingleStringMathTex object
+        super().__init__(self.l1_str, self.l2_str, self.separator, self.r1_str, self.r2_str)
 
-        # Set colors of MathTex object
-        VGroup(self[0].submobjects[slice(*self.get_lhs_prt1_range())]).set_color(self.lhs_prt1_color)
-        VGroup(self[0].submobjects[slice(*self.get_lhs_prt2_range())]).set_color(self.lhs_prt2_color)
-        VGroup(self[0].submobjects[slice(*self.get_rhs_prt1_range())]).set_color(self.rhs_prt1_color)
-        VGroup(self[0].submobjects[slice(*self.get_rhs_prt2_range())]).set_color(self.rhs_prt2_color)
+        # Set colors of SingleStringMathTex objects
+        self.get_l1_mobj().set_color(self.l1_color)
+        self.get_l2_mobj().set_color(self.l2_color)
+        self.get_r1_mobj().set_color(self.r1_color)
+        self.get_r2_mobj().set_color(self.r2_color)
 
         # Update Position to center equal sign on screen center
-        equal_sign_glyph = self[0].submobjects[self.get_equal_sign_index()]
-        pos_diff = self.tex_location - equal_sign_glyph.get_center()
+        pos_diff = self.tex_location - self.get_equal_sign_mobj().get_center()
         self.shift(pos_diff)
 
     def become_transform_target(self):
@@ -111,6 +143,36 @@ class VariableVal(MathTex):
 
         # self.transform_target = None
 
+    def process_animate_part(self, animation_list: list[Animation], src_mobj, dest_mobj, **animation_kwargs):
+        # Process delay copied to https://github.com/TheMathematicFanatic/MF_Tools/blob/91760a6a7d69f88235034ef043a93a2d12c18b81/src/MF_Tools/transforms.py#L155
+        delay = animation_kwargs.pop("delay", 0)
+        if delay != 0:
+            run_time = animation_kwargs.pop("run_time", 1)
+            new_run_time = delay + run_time
+            rate_func = animation_kwargs.pop("rate_func", smooth)
+            def new_rate_func(t): # https://www.desmos.com/calculator/4hphvny63n
+                a = delay / new_run_time
+                if t < a:
+                    return 0
+                else:
+                    return rate_func((t-a)/(1-a))
+            animation_kwargs["rate_func"] = new_rate_func
+            animation_kwargs["run_time"] = new_run_time
+
+        def is_empty(mobj):
+            return not mobj or mobj.tex_string == self.zero_width_char
+
+        if is_empty(src_mobj):
+            if is_empty(dest_mobj):
+                return
+            else:
+                animation_list.append(Write(dest_mobj, **animation_kwargs))
+        else:
+            if is_empty(dest_mobj):
+                animation_list.append(FadeOut(src_mobj, **animation_kwargs))
+            else:
+                animation_list.append(Transform(src_mobj, dest_mobj, **animation_kwargs))
+
     """
     Any arguments left empty will default to the value of self
 
@@ -131,31 +193,37 @@ class VariableVal(MathTex):
         *,
         perform_arithmetic,
         **transform_kwargs,
-    ) -> mft.TransformByGlyphMap:
+    ) -> AnimationGroup:
 
         kwargs = {}
         kwargs["tex_location"] = self.tex_location if new_tex_location is None else new_tex_location
-        kwargs["lhs_prt1"] = self.lhs_prt1 if new_lhs_prt1 is None else new_lhs_prt1
-        kwargs["lhs_prt2"] = self.lhs_prt2 if new_lhs_prt2 is None else new_lhs_prt2
-        kwargs["rhs_prt1"] = self.rhs_prt1 if new_rhs_prt1 is None else new_rhs_prt1
-        kwargs["rhs_prt2"] = self.rhs_prt2 if new_rhs_prt2 is None else new_rhs_prt2
-        kwargs["lhs_prt1_color"] = self.lhs_prt1_color if new_lhs_prt1_color is None else new_lhs_prt1_color
-        kwargs["lhs_prt2_color"] = self.lhs_prt2_color if new_lhs_prt2_color is None else new_lhs_prt2_color
-        kwargs["rhs_prt1_color"] = self.rhs_prt1_color if new_rhs_prt1_color is None else new_rhs_prt1_color
-        kwargs["rhs_prt2_color"] = self.rhs_prt2_color if new_rhs_prt2_color is None else new_rhs_prt2_color
+        kwargs["lhs_prt1"] = self._l1_str if new_lhs_prt1 is None else new_lhs_prt1
+        kwargs["lhs_prt2"] = self._l2_str if new_lhs_prt2 is None else new_lhs_prt2
+        kwargs["rhs_prt1"] = self._r1_str if new_rhs_prt1 is None else new_rhs_prt1
+        kwargs["rhs_prt2"] = self._r2_str if new_rhs_prt2 is None else new_rhs_prt2
+        kwargs["lhs_prt1_color"] = self.l1_color if new_lhs_prt1_color is None else new_lhs_prt1_color
+        kwargs["lhs_prt2_color"] = self.l2_color if new_lhs_prt2_color is None else new_lhs_prt2_color
+        kwargs["rhs_prt1_color"] = self.r1_color if new_rhs_prt1_color is None else new_rhs_prt1_color
+        kwargs["rhs_prt2_color"] = self.r2_color if new_rhs_prt2_color is None else new_rhs_prt2_color
 
         self.transform_target = VariableVal(**kwargs)
 
-        src_lhs_prt1_range = np.arange(*self.get_lhs_prt1_range())
-        src_lhs_prt2_range = np.arange(*self.get_lhs_prt2_range())
-        src_rhs_prt1_range = np.arange(*self.get_rhs_prt1_range())
-        src_rhs_prt2_range = np.arange(*self.get_rhs_prt2_range())
+        animations: list[Animation] = []
 
-        dest_lhs_prt1_range = np.arange(*self.transform_target.get_lhs_prt1_range())
-        dest_lhs_prt2_range = np.arange(*self.transform_target.get_lhs_prt2_range())
-        dest_rhs_prt1_range = np.arange(*self.transform_target.get_rhs_prt1_range())
-        dest_rhs_prt2_range = np.arange(*self.transform_target.get_rhs_prt2_range())
+        if perform_arithmetic:
+            self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj())
+            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_l2_mobj(), delay=0.5)
+            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj())
+            self.process_animate_part(animations, VGroup(self.get_r1_mobj(), self.get_r2_mobj()), self.transform_target.get_r1_mobj())
+            self.process_animate_part(animations, None, self.transform_target.get_r2_mobj())
+        else:
+            self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj())
+            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj())
+            self.process_animate_part(animations, self.get_r1_mobj(), self.transform_target.get_r1_mobj())
+            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(), path_arch=PI)
+            self.process_animate_part(animations, None, self.transform_target.get_l2_mobj())
 
+        """
         # Create Transformation Tuples
         if perform_arithmetic:
             transformation_tuples = [
@@ -211,3 +279,6 @@ class VariableVal(MathTex):
         animation.clean_up_from_scene = patched_clean_up_meth.__get__(animation)
 
         return animation
+        """
+
+        return AnimationGroup(*animations)
