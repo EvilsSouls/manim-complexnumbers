@@ -1,6 +1,6 @@
 from manim import *
 from manim.mobject.text.tex_mobject import MathTexPart
-import MF_Tools as mft
+from manim.animation.transform import _MethodAnimation
 
 from manim.typing import Vector3DLike
 from manim.utils.color import ManimColor
@@ -48,6 +48,17 @@ class VariableVal(MathTex):
             ("R1_INDEX", 3),
             ("R2_INDEX", 4)
         ])
+
+        # Only change if you know what you're doing. Quite a lot of stuff is specificially
+        # hardcoded for a specific type of animation
+        self.INTRODUCE_ANIMATION = Write
+        self.TRANSFORM_ANIMATION = Transform
+        # Couldn't use FadeOut, due to it *having* to be a remover (which is undesired
+        # behavior, since that would remove one of the submobjects of self, which is something
+        # I *do not* want to deal with (I've had trouble with that before))
+        # Also I couldn't use FadeTransform due to that causing the object to shift *and* fade,
+        # which is also undesired (however, instead, because of my visual perfectionism)
+        self.remover_animation = lambda mobj, **animation_kwargs: mobj.animate(**animation_kwargs).set_fill(opacity=0)
 
         self.update_mobject()
 
@@ -120,28 +131,28 @@ class VariableVal(MathTex):
         pos_diff = self.tex_location - self.get_equal_sign_mobj().get_center()
         self.shift(pos_diff)
 
-    def become_transform_target(self):
-        assert self.transform_target is not None, "No transform target found"
-
-        # Copy all kwargs from self.transform_target over
-        kwargs = {}
-        kwargs["tex_location"] = self.transform_target.tex_location
-        kwargs["lhs_prt1"] = self.transform_target.lhs_prt1
-        kwargs["lhs_prt2"] = self.transform_target.lhs_prt2
-        kwargs["rhs_prt1"] = self.transform_target.rhs_prt1
-        kwargs["rhs_prt2"] = self.transform_target.rhs_prt2
-        kwargs["lhs_prt1_color"] = self.transform_target.lhs_prt1_color
-        kwargs["lhs_prt2_color"] = self.transform_target.lhs_prt2_color
-        kwargs["rhs_prt1_color"] = self.transform_target.rhs_prt1_color
-        kwargs["rhs_prt2_color"] = self.transform_target.rhs_prt2_color
-
-        # Reinitialize VariableVal to regenerate all submobject glyphs with attributes taken from self.transform_target
-        # Can't use self.become() due to a lower length of submobjects in the self.transform_target mobject causing
-        # ghost mobjects
-        self.__init__(**kwargs)
-        # self.submobjects = self.transform_target.submobjects
-
-        # self.transform_target = None
+    # def become_transform_target(self):
+    #     assert self.transform_target is not None, "No transform target found"
+    #
+    #     # Copy all kwargs from self.transform_target over
+    #     kwargs = {}
+    #     kwargs["tex_location"] = self.transform_target.tex_location
+    #     kwargs["lhs_prt1"] = self.transform_target.lhs_prt1
+    #     kwargs["lhs_prt2"] = self.transform_target.lhs_prt2
+    #     kwargs["rhs_prt1"] = self.transform_target.rhs_prt1
+    #     kwargs["rhs_prt2"] = self.transform_target.rhs_prt2
+    #     kwargs["lhs_prt1_color"] = self.transform_target.lhs_prt1_color
+    #     kwargs["lhs_prt2_color"] = self.transform_target.lhs_prt2_color
+    #     kwargs["rhs_prt1_color"] = self.transform_target.rhs_prt1_color
+    #     kwargs["rhs_prt2_color"] = self.transform_target.rhs_prt2_color
+    #
+    #     # Reinitialize VariableVal to regenerate all submobject glyphs with attributes taken from self.transform_target
+    #     # Can't use self.become() due to a lower length of submobjects in the self.transform_target mobject causing
+    #     # ghost mobjects
+    #     self.__init__(**kwargs)
+    #     # self.submobjects = self.transform_target.submobjects
+    #
+    #     # self.transform_target = None
 
     def process_animate_part(self, animation_list: list[Animation], src_mobj, dest_mobj, **animation_kwargs):
         # Process delay copied to https://github.com/TheMathematicFanatic/MF_Tools/blob/91760a6a7d69f88235034ef043a93a2d12c18b81/src/MF_Tools/transforms.py#L155
@@ -160,18 +171,41 @@ class VariableVal(MathTex):
             animation_kwargs["run_time"] = new_run_time
 
         def is_empty(mobj):
-            return not mobj or mobj.tex_string == self.zero_width_char
+            is_empty_condition = lambda tex_part: not tex_part or tex_part.tex_string == self.zero_width_char
+
+            if type(mobj) is VGroup:
+                result = True
+
+                for current_submobj in mobj.submobjects:
+                    if not is_empty_condition(current_submobj):
+                        result = False
+                    else:
+                        # Remove empty glyphs, since they cause
+                        # weird glitchy behavior when transforming
+                        mobj.submobjects.remove(current_submobj)
+
+                return result
+
+            return is_empty_condition(mobj)
 
         if is_empty(src_mobj):
             if is_empty(dest_mobj):
+                print(f"Empty src ({src_mobj}) and dest ({dest_mobj})")
                 return
             else:
-                animation_list.append(Write(dest_mobj, **animation_kwargs))
+                print(f"Animation (from: {src_mobj} to {dest_mobj}) is Introducer")
+                # src_mobj.align_data(cast(VariableVal, self.transform_target))
+                # src_mobj.interpolate(src_mobj, self.transform_target, 1)
+                animation_list.append(self.INTRODUCE_ANIMATION(dest_mobj, **animation_kwargs))
         else:
             if is_empty(dest_mobj):
-                animation_list.append(FadeOut(src_mobj, **animation_kwargs))
+                print(f"Animation (from: {src_mobj} to {dest_mobj}) is Remover")
+                # Opacity gets set back to one, once all of submobjects of self have been updated
+                # to reflect the new changes that couldn't be done using Transform
+                animation_list.append(self.remover_animation(src_mobj, **animation_kwargs))
             else:
-                animation_list.append(Transform(src_mobj, dest_mobj, **animation_kwargs))
+                print(f"Animation translates from {src_mobj} to {dest_mobj}")
+                animation_list.append(self.TRANSFORM_ANIMATION(src_mobj, dest_mobj, **animation_kwargs))
 
     """
     Any arguments left empty will default to the value of self
@@ -220,8 +254,18 @@ class VariableVal(MathTex):
             self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj())
             self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj())
             self.process_animate_part(animations, self.get_r1_mobj(), self.transform_target.get_r1_mobj())
-            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(), path_arch=PI)
+            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(), path_arc=PI)
             self.process_animate_part(animations, None, self.transform_target.get_l2_mobj())
+
+        animation = AnimationGroup(*animations)
+
+        # # Incredibly hacky monkey patching that overrides the default behavior, which assumes that
+        # # ReplacementTransform or something similar is used, meaning that mobB should be added to
+        # # the screen and the initial state of mobA reset
+        # def patched_clean_up_meth(self, scene):
+        #     pass
+        #
+        # animation.clean_up_from_scene = patched_clean_up_meth.__get__(animation)
 
         """
         # Create Transformation Tuples
@@ -281,4 +325,4 @@ class VariableVal(MathTex):
         return animation
         """
 
-        return AnimationGroup(*animations)
+        return animation
