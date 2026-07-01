@@ -281,7 +281,7 @@ class IntroduceNumberSystems(Slide):
         )
 
     def construct(self):
-        self.start_skip_animations()
+        # self.start_skip_animations()
         self.next_slide()
         self.introduction(16)
 
@@ -308,7 +308,7 @@ class IntroduceNumberSystems(Slide):
         POINTER_CREATION_TIME = 1
         self.prepare_experimentation_add_subtract(self.TEX_LOC, POINTER_CREATION_TIME)
 
-        self.stop_skip_animations()
+        # self.stop_skip_animations()
 
         self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!")
         self.experimentation_add_subtract()
@@ -317,7 +317,6 @@ class IntroduceNumberSystems(Slide):
         self.introduction_whole_numbers()
 
         self.wait(5)
-        print(self.mobjects)
 
         self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
         self.introduction_rational_numbers()
