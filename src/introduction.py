@@ -1,5 +1,9 @@
 import math
+from typing import final
+
+from manim._config import logger_utils
 from variable_val import VariableVal
+from utils import clamp_loc_horiz
 
 import numpy as np
 from numpy.random import default_rng
@@ -52,8 +56,8 @@ class IntroduceNumberSystems(Slide):
         return ~self.origin_nat_nums * LEFT + RIGHT * nl_val * self.SPACING
 
     def introduction(self, AMOUNT_NUMS):
-        school_icon = SVGMobject("assets/school-opensvg-dot-dev.svg", fill_color=GRAY_A, stroke_color=GRAY_A, fill_opacity=1, width=5).shift(UP)
-        label = Text("Zurück in die Grundschule (yay?)", font_size=50).next_to(school_icon, DOWN, buff=1.25)
+        school_icon = SVGMobject("assets/school-opensvg-dot-dev.svg", fill_color=GRAY_A, stroke_color=WHITE, fill_opacity=1, width=5).shift(UP)
+        label = Text("Zurück ins Paradies", font_size=50).next_to(school_icon, DOWN, buff=1.5)
         school_icon_label = VGroup(school_icon, label)
         self.play(Write(school_icon_label), run_time=2.5)
 
@@ -178,6 +182,8 @@ class IntroduceNumberSystems(Slide):
         def format_val_string(val):
             return f"{'+' if val >= 0 else ''}" + str(val)
 
+        self.increment_vals.append(val)
+
         lhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2=format_val_string(-val), perform_arithmetic=True)
         self.play(lhs_summand_transform, run_time=0.8)
 
@@ -218,16 +224,16 @@ class IntroduceNumberSystems(Slide):
         self.remove(br, label)
 
     def experimentation_add_subtract(self):
+        self.increment_vals = []
+
         self.slide_incr(1, 0.75)
         self.wait(0.5)
 
-        self.slide_incr(-4, 0.75)
+        self.slide_incr(-5, 0.75)
         self.wait(0.5)
 
-        self.slide_incr(7, 0.75)
+        self.slide_incr(2, 0.75)
         self.wait(0.5)
-
-        self.slide_incr(-8, 1)
 
     def introduction_whole_numbers(self, neg_nums_lag_ratio = 0.5, neg_nums_run_time = 2.5):
         # Shift all natural numbers, such that 0 is in the middle of the screen
@@ -238,7 +244,7 @@ class IntroduceNumberSystems(Slide):
         del self.number_dots.submobjects[new_dots_len:nat_dots_length]
 
         # Move to 'undefined' place (-1)
-        self.slide_incr(-2, 1, True)
+        self.slide_incr(-4, 1, True)
 
         self.next_slide(notes="")
 
@@ -273,15 +279,123 @@ class IntroduceNumberSystems(Slide):
         self.current_environment = new_environment
 
     def introduction_rational_numbers(self):
-        transform_back_to_original = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.START_VAL}", perform_arithmetic=True)
+        ARROW_START = DOWN * 0.5
+        ARROW_BUFFER = 0.4
+
+        # Fade Out Pointer to give space to the displacement arrows
+        self.play(FadeOut(self.pointer, self.pointer_label, self.variable_val), run_time=0.5)
+        self.wait(0.5)
+
+        # Create Displacement Arrows to eventually show the cumulative sum of all increments
+        self.displacement_arrows = VGroup()
+        current_val = 0
+        for i, current_increment_val in enumerate(self.increment_vals):
+            # Create Arrow
+            new_current_val = current_val + current_increment_val
+            arrow = Arrow(self.nl_to_coords(current_val), self.nl_to_coords(new_current_val), stroke_width=4, color=RED, buff=0)
+
+            # Stack on top of eachother
+            arrow.shift(ARROW_START + DOWN * i * ARROW_BUFFER)
+
+            # Create Label and darken background of arrow at label's position
+            displacement_arrow_label = MathTex(current_increment_val, font_size=35, color=RED).move_to(arrow.get_center())
+            label_background = BackgroundRectangle(displacement_arrow_label, fill_opacity=0.9, buff=0.1)
+
+            # Play Creation of Arrow
+            self.play(LaggedStart(GrowArrow(arrow), AnimationGroup(FadeIn(label_background, run_time=0.1), FadeIn(displacement_arrow_label)), lag_ratio=0.6), run_time=1)
+            self.displacement_arrows += VDict([("a", arrow), ("l", VGroup(label_background, displacement_arrow_label))])
+
+            current_val = new_current_val
+
+        # Flatten out all of the lines to create their sum
+        flatten_arrows_animations = []
+        final_sum_result = sum(self.increment_vals)
+        # The label of the resulting line must be calculated before the line itself, for the Translation target of the labels to be defined
+        resulting_line_label = MathTex(*(f"{'+' if val >= 0 else ''}{val}" for val in self.increment_vals), font_size=35, color=RED)
+        # Move to estimated position
+        resulting_line_label.move_to(1/2 * (self.zero_dot.get_center() + self.nl_to_coords(final_sum_result)))
+        resulting_line_label.align_to(ARROW_START, UP)
+        resulting_line_label.shift(1/2 * ARROW_BUFFER * DOWN)
+        for i, current_arrow in enumerate(self.displacement_arrows):
+            old_line_start = current_arrow['a'].get_start()
+            old_line_end = current_arrow['a'].get_end()
+
+            # Remove any excess line parts outside of the range [final_sum_result,0] or [0,final_sum_result] depending on the sign of final_sum_result
+            if final_sum_result < 0:
+                old_line_start = clamp_loc_horiz(old_line_start, self.nl_to_coords(final_sum_result), self.zero_dot.get_center())
+                old_line_end = clamp_loc_horiz(old_line_end, self.nl_to_coords(final_sum_result), self.zero_dot.get_center())
+            else:
+                old_line_start = clamp_loc_horiz(old_line_start, self.zero_dot.get_center(), self.nl_to_coords(final_sum_result))
+                old_line_end = clamp_loc_horiz(old_line_end, self.zero_dot.get_center(), self.nl_to_coords(final_sum_result))
+
+            new_joined_line = Line(old_line_start, old_line_end, color=RED)
+            new_joined_line.align_to(ARROW_START, UP) # Align all lines vertically ontop of eachother
+
+            # Add a tip to the very last line
+            if i == len(self.displacement_arrows) - 1:
+                new_joined_line.add_tip(tip_shape=ArrowTriangleFilledTip)
+
+            flatten_arrows_animations.append(AnimationGroup(
+                Transform(current_arrow['a'], new_joined_line),
+                FadeOut(current_arrow['l'][0]),
+                Transform(current_arrow['l'][1], resulting_line_label[i], path_arc=-PI)
+            ))
+
+        self.play(AnimationGroup(*flatten_arrows_animations, lag_ratio=0.1), run_time=2)
+
+        # Create the new resulting line *before* actually faltting out all of the arrows, to be able to translate the labels to the correct position
+        new_resulting_line = Line(self.displacement_arrows[0]['a'].get_start(), self.displacement_arrows[-1]['a'].get_end(), color=RED)
+        new_resulting_line.add_tip(tip_shape=ArrowTriangleFilledTip)
+        # # Correct the placement of resulting_line_label now that the location of the new_resulting_line is known.
+        # # Shouldn't actually change anything, but there is no reason why not to try to correct it
+        # resulting_line_label.next_to(new_resulting_line, DOWN, buff=0.1)
+        # nvm... won't be able to know the exact location of label, without calculating the position of new_resulting_line first,
+        # which in this case is too much effort (it probably would be quite trivial... I'd just have to switch to ReplacementTransform
+        # (to be able to use the already calculated positions before playing the actual Animation, but eh... I am fine with just hardcoding
+        # an estimated location)
+
+        for current_arrow in self.displacement_arrows.submobjects:
+            self.remove(current_arrow['a'])
+            self.remove(current_arrow['l'][1])
+        del self.displacement_arrows
+
+        self.add(new_resulting_line, resulting_line_label)
+
+        self.next_slide()
+
+        increment_length = len(self.increment_vals)
+        scaled_line = Arrow(self.zero_dot.get_center(), self.nl_to_coords(final_sum_result / increment_length), color=GREEN, buff=0, stroke_width=1.5, max_tip_length_to_length_ratio=0.2).align_to(ARROW_START, UP)
+        new_label = MathTex(f"{{{final_sum_result}", r"\over", f"{increment_length}}}", "=", r"\text{\large ?}", font_size=35).next_to(scaled_line, DOWN, buff=0.1)
+        new_label[0:3].set_color(GREEN)
+        new_label[-1].set_color(RED)
+
+        following_dot = Dot(ORIGIN, color=GREEN, radius=DEFAULT_DOT_RADIUS * 0.75).set_z_index(-1)
+        following_dot.add_updater(lambda mobj: mobj.move_to(new_resulting_line.get_end()[0] * RIGHT))
+        self.add(following_dot)
+
+        self.variable_val.__init__(tex_location=self.TEX_LOC, lhs_prt1=r"\mu", rhs_prt1=r"\text{\large ?}", lhs_prt1_color=GREEN, rhs_prt1_color=RED)
 
         self.play(
-            self.value_tracker @ 5,
-            transform_back_to_original
+            mft.TransformByGlyphMap(
+                resulting_line_label,
+                new_label,
+                (list(range(0,increment_length)), [0], {"run_time": 2.5}),
+                ([], [1], {"run_time": 2.5}),
+                ([], [2], {"run_time": 2.5}),
+                (Write, [3, 4], {"delay": 2.5, "run_time": 0.5}),
+                mobA_submobject_index=[],
+                mobB_submobject_index=[],
+                shift_fades=True,
+                run_time=3
+                # introduce_individually=True,
+            ),
+            ReplacementTransform(new_resulting_line, scaled_line, run_time=2.5),
+            Write(self.variable_val, run_time=2.5),
         )
 
+
     def construct(self):
-        # self.start_skip_animations()
+        self.start_skip_animations()
         self.next_slide()
         self.introduction(16)
 
@@ -308,15 +422,13 @@ class IntroduceNumberSystems(Slide):
         POINTER_CREATION_TIME = 1
         self.prepare_experimentation_add_subtract(self.TEX_LOC, POINTER_CREATION_TIME)
 
-        # self.stop_skip_animations()
-
         self.next_slide(notes="Man sieht wie Addition als Gleiten entlang des Zahlenstrahls wahrgenommen werden kann; Warte bis Stehen Geblieben!")
         self.experimentation_add_subtract()
 
         self.next_slide()
         self.introduction_whole_numbers()
 
-        self.wait(5)
+        self.stop_skip_animations()
 
         self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
         self.introduction_rational_numbers()
