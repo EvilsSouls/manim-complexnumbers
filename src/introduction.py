@@ -72,7 +72,7 @@ class IntroduceNumberSystems(Slide):
         nat_nums_txt = Text("Natürliche Zahlen")
         self.play(ReplacementTransform(random_numbers, nat_nums_txt, path_arc=PI))
 
-        self.next_slide(auto_next=True)
+        self.next_slide()
         self.current_environment = MathTex(r"\mathbb{N}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
         self.play(ReplacementTransform(nat_nums_txt, self.current_environment))
 
@@ -108,7 +108,8 @@ class IntroduceNumberSystems(Slide):
         WRITE_RUN_TIME: float,
         OPERAND1_COLOR: ParsableManimColor,
         OPERAND2_COLOR: ParsableManimColor,
-        RESULT_COLOR: ParsableManimColor) -> None:
+        RESULT_COLOR: ParsableManimColor
+    ) -> None:
 
         def show_arithmetic_binary_operation(val_a: int, operation: str, val_b: int, val_c: int, commutative = True):
             operand2_color = OPERAND1_COLOR if commutative else OPERAND2_COLOR
@@ -185,7 +186,9 @@ class IntroduceNumberSystems(Slide):
         self.increment_vals.append(val)
 
         lhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2=format_val_string(-val), perform_arithmetic=True)
-        self.play(lhs_summand_transform, run_time=0.8)
+        self.play(lhs_summand_transform, run_time=1.5)
+
+        self.next_slide()
 
         # Align Brace to invisible line that spans the entire sliding animation
         line_loc_1 = self.nl_to_coords(self.value_tracker.get_value()) + self.POINTER_LENGTH * DOWN
@@ -202,7 +205,7 @@ class IntroduceNumberSystems(Slide):
             FadeIn(br, shift=UP),
             FadeIn(label, shift=UP),
             rhs_summand_transform,
-            run_time=0.8
+            run_time=1.5
         )
 
         self.wait(0.3)
@@ -227,13 +230,12 @@ class IntroduceNumberSystems(Slide):
         self.increment_vals = []
 
         self.slide_incr(1, 0.75)
-        self.wait(0.5)
+        self.next_slide()
 
         self.slide_incr(-5, 0.75)
-        self.wait(0.5)
+        self.next_slide()
 
         self.slide_incr(2, 0.75)
-        self.wait(0.5)
 
     def introduction_whole_numbers(self, neg_nums_lag_ratio = 0.5, neg_nums_run_time = 2.5):
         # Shift all natural numbers, such that 0 is in the middle of the screen
@@ -278,7 +280,7 @@ class IntroduceNumberSystems(Slide):
         # did not update the old variable, we must assign self.current_environment ourselves as well
         self.current_environment = new_environment
 
-    def introduction_rational_numbers(self):
+    def introduction_rational_numbers(self, rational_nums_run_time = 2.5):
         ARROW_START = DOWN * 0.5
         ARROW_BUFFER = 0.4
 
@@ -306,6 +308,8 @@ class IntroduceNumberSystems(Slide):
             self.displacement_arrows += VDict([("a", arrow), ("l", VGroup(label_background, displacement_arrow_label))])
 
             current_val = new_current_val
+
+        self.next_slide()
 
         # Flatten out all of the lines to create their sum
         flatten_arrows_animations = []
@@ -361,15 +365,18 @@ class IntroduceNumberSystems(Slide):
 
         self.add(new_resulting_line, resulting_line_label)
 
+        # self.stop_skip_animations()
+
         self.next_slide()
 
         increment_length = len(self.increment_vals)
-        scaled_line = Arrow(self.zero_dot.get_center(), self.nl_to_coords(final_sum_result / increment_length), color=GREEN, buff=0, stroke_width=1.5, max_tip_length_to_length_ratio=0.2).align_to(ARROW_START, UP)
+        scaled_num = final_sum_result / increment_length
+        scaled_line = Arrow(self.zero_dot.get_center(), self.nl_to_coords(scaled_num), color=GREEN, buff=0, stroke_width=1.5, max_tip_length_to_length_ratio=0.2).align_to(ARROW_START, UP)
         new_label = MathTex(f"{{{final_sum_result}", r"\over", f"{increment_length}}}", "=", r"\text{\large ?}", font_size=35).next_to(scaled_line, DOWN, buff=0.1)
         new_label[0:3].set_color(GREEN)
         new_label[-1].set_color(RED)
 
-        following_dot = Dot(ORIGIN, color=GREEN, radius=DEFAULT_DOT_RADIUS * 0.75).set_z_index(-1)
+        following_dot = Dot(ORIGIN, color=GREEN, radius=DEFAULT_DOT_RADIUS * 0.9).set_z_index(-1)
         following_dot.add_updater(lambda mobj: mobj.move_to(new_resulting_line.get_end()[0] * RIGHT))
         self.add(following_dot)
 
@@ -382,20 +389,95 @@ class IntroduceNumberSystems(Slide):
                 (list(range(0,increment_length)), [0], {"run_time": 2.5}),
                 ([], [1], {"run_time": 2.5}),
                 ([], [2], {"run_time": 2.5}),
-                (Write, [3, 4], {"delay": 2.5, "run_time": 0.5}),
+                ([], [3, 4], {"delay": 2.5, "run_time": 0.25, "shift": None}),
                 mobA_submobject_index=[],
                 mobB_submobject_index=[],
                 shift_fades=True,
-                run_time=3
-                # introduce_individually=True,
+                run_time=2.75,
+                introduce_individually=False,
             ),
             ReplacementTransform(new_resulting_line, scaled_line, run_time=2.5),
             Write(self.variable_val, run_time=2.5),
         )
 
+        following_dot.set_z_index(1)
+
+        self.next_slide()
+
+        new_environment = MathTex(r"\mathbb{Q}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
+
+        max_num = math.floor(self.END_NUM / 2)
+        self.number_line = NumberLine(
+            [-max_num, max_num + 0.5, 1], # Add space for tip
+            unit_size=self.SPACING,
+            color=self.NAT_POINT_COLOR,
+            include_numbers=True,
+            label_direction=UP,
+            include_tip=True,
+            tip_width=0.25,
+            tip_height=0.25,
+        )
+        # Align number line to previous dots
+        self.number_line.shift(self.number_dots[0]['d'].get_center() - self.number_line.get_start())
+        # Add smaller half-step ticks
+        # Don't need to subtract SMALLER_TICK_STEP, since the last value is always excluded
+        SMALLER_TICK_STEP = 0.5
+        for current_tick_val in np.arange(-max_num + SMALLER_TICK_STEP, max_num, SMALLER_TICK_STEP): 
+            if not current_tick_val.is_integer():
+                current_tick = self.number_line.get_tick(current_tick_val, 0.1 * 0.5)
+                self.number_line.get_tick_marks().add(current_tick)
+        # Sort the ticks so that the VGroup contains the ticks in a left-to-right order
+        self.number_line.get_tick_marks().sort(submob_func=lambda tick: tick.get_center()[0])
+
+        self.value_tracker @= scaled_num
+        self.pointer.update().set_color(GREEN)
+        # Used to correctly align the actual self.pointer_label
+        self.abs_pointer_label = MathTex(str(abs(scaled_num)), font_size=35).next_to(self.pointer, DOWN, buff=0.2)
+        self.pointer_label = MathTex(str(scaled_num), font_size=35).set_color(GREEN).move_to(self.abs_pointer_label.get_center())
+
+        variable_val_transform_animation = self.variable_val.return_translate_animation(new_rhs_prt1=str(scaled_num), new_rhs_prt1_color=WHITE, perform_arithmetic=True)
+
+        self.play(
+            *((
+                (
+                    ReplacementTransform(current_dot['l'], self.number_line.numbers[i]),
+                    ReplacementTransform(current_dot['d'], self.number_line.get_tick_marks()[int((1/SMALLER_TICK_STEP) * i)])
+                )
+            ) for i, current_dot in enumerate(self.number_dots)),
+
+            variable_val_transform_animation,
+            ReplacementTransform(new_label, self.pointer_label, path_arc=-np.pi/2, suspend_mobject_updating=True),
+            ReplacementTransform(scaled_line, self.pointer, path_arc=-np.pi/2),
+
+            *(GrowFromCenter(self.number_line.get_tick_marks()[i]) for i in range(1, len(self.number_line.get_tick_marks()), int(1/SMALLER_TICK_STEP))),
+            DrawBorderThenFill(self.number_line.get_tip()),
+            GrowFromPoint(self.number_line.save_state().set(submobjects=[]), point=self.zero_dot.get_center()),
+
+            # Idea and Implementation of Transformation Animation once again provided by @nmbj on Discord
+            self.current_environment.animate(remover=True, run_time=rational_nums_run_time*0.75).scale((1,0,1), about_edge=UP),
+            new_environment.save_state().scale((1,0,1), about_edge=DOWN).animate(introducer=True, run_time=rational_nums_run_time*0.75).restore(),
+
+            run_time=3
+        )
+
+        # Restore Numberline to once again contain submobjects
+        self.number_line.restore()
+        self.current_environment = new_environment
+
+        self.wait()
+
+        self.add(self.number_line)
+
+        # Somehow have to add updater after playing animation, since the mobjects in self.pointer_label.submobjects apparently
+        # get replaced with functions that automatically update the mobjects submobjects
+        self.abs_pointer_label.add_updater(lambda mobj: mobj.next_to(self.pointer, DOWN))
+        self.pointer_label.add_updater(lambda mobj: mobj.move_to(self.abs_pointer_label.get_center()))
+
+        self.wait()
+
 
     def construct(self):
-        self.start_skip_animations()
+        # self.start_skip_animations()
         self.next_slide()
         self.introduction(16)
 
@@ -428,7 +510,7 @@ class IntroduceNumberSystems(Slide):
         self.next_slide()
         self.introduction_whole_numbers()
 
-        self.stop_skip_animations()
+        # self.stop_skip_animations()
 
         self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
         self.introduction_rational_numbers()
