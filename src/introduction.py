@@ -1,7 +1,5 @@
 import math
-from typing import final
 
-from manim._config import logger_utils
 from variable_val import VariableVal
 from utils import clamp_loc_horiz
 
@@ -11,7 +9,7 @@ from manim import *
 from manim_slides import Slide
 import MF_Tools as mft
 
-from manim.typing import Vector3DLike
+from manim.typing import Vector3DLike, Point3DLike
 
 """
 @todo:
@@ -24,11 +22,13 @@ class IntroduceNumberSystems(Slide):
         # At the very start all natural numbers from 0 to self.END_NUM are displayed
         # (yes: 0 is a natural number — don't @ me)
         self.END_NUM = 15
-        # self.origin_nat_nums * LEFT is where the '0' point of the number system is located
-        # I previously had it simply set to 6.75 * LEFT, however since I need to move it to the right, when introducing whole numbers,
-        # it must be a ValueTracker, which can't use a vector as its input
+        # self.origin_nat_nums * LEFT is where the '0' point of the number
+        # system is located I previously had it simply set to 6.75 * LEFT,
+        # however since I need to move it to the right, when introducing whole
+        # numbers, it must be a ValueTracker, which can't use a vector as its input
         self.origin_nat_nums = mft.VT(6.75)
 
+        # Set a bunch of constants that configure the visuals of the animation
         self.START_VAL = 5
         self.SPACING = 0.95
         self.TEX_LOC = UP * 3
@@ -36,6 +36,9 @@ class IntroduceNumberSystems(Slide):
 
         self.NAT_POINT_COLOR = YELLOW
         self.SUMMAND_COLOR = RED
+
+        # Used to keep track of the different values that self.variable_val is incremented / decremented by
+        self.increment_vals = []
 
         # Variable Val Tex with Question Mark (used multiple times, when introducing new numbers)
         self.qm_variable_val = MathTex(r"x = \text{\large ?}").shift(self.TEX_LOC)
@@ -47,15 +50,15 @@ class IntroduceNumberSystems(Slide):
         # We love gambling
         self.rng = default_rng()
 
-    # Somewhat hacky fix, where sometimes the last frame does not get rendered when presenting
     def next_slide(self, *args, **kwargs):
+        """Somewhat hacky fix, where sometimes the last frame does not get rendered when presenting"""
         self.wait(0.001)
         super().next_slide(*args, **kwargs)
 
-    def nl_to_coords(self, nl_val):
+    def nl_to_coords(self, nl_val: float) -> Point3DLike:
         return ~self.origin_nat_nums * LEFT + RIGHT * nl_val * self.SPACING
 
-    def introduction(self, AMOUNT_NUMS):
+    def introduction(self, AMOUNT_NUMS: int):
         school_icon = SVGMobject("assets/school-opensvg-dot-dev.svg", fill_color=GRAY_A, stroke_color=WHITE, fill_opacity=1, width=5).shift(UP)
         label = Text("Zurück ins Paradies", font_size=50).next_to(school_icon, DOWN, buff=1.5)
         school_icon_label = VGroup(school_icon, label)
@@ -85,9 +88,10 @@ class IntroduceNumberSystems(Slide):
             dot_label = Tex(f"{i}").next_to(dot, UP)
             self.number_dots.add(VDict([('d', dot), ('l', dot_label)]))
 
-        # Store a refernce to the '0' dot, for future reference (when negative numbers are added)
-        # This is technically not needed, since the negative dots will be added after the positive ones and will as such not be needed,
-        # but I'd rather not deal wit that and simply have an easy-to-read reference
+        # Store a refernce to the '0' dot, for future reference,
+        # Since after the negative numbers have been added and the submobjects of
+        # self.number_dots sorted, finding the '0' submobject won't be so trivial
+        # (plus it is more readable using a reference like self.zero_dot instead of self.number_dots[0]['d'])
         self.zero_dot = self.number_dots[0]['d']
 
         self.play(
@@ -166,6 +170,7 @@ class IntroduceNumberSystems(Slide):
 
         pointer_loc = self.nl_to_coords(self.value_tracker.get_value())
         self.pointer = Arrow(start=pointer_loc + self.POINTER_LENGTH * DOWN, end=pointer_loc, buff=0.3)
+        # Always let pointer track self.value_tracker
         self.pointer.add_updater(lambda m: m.move_to(self.nl_to_coords(self.value_tracker.get_value()) + 1/2 * self.POINTER_LENGTH * DOWN))
 
         self.pointer_label = MathTex("x").next_to(self.pointer, DOWN)
@@ -183,9 +188,18 @@ class IntroduceNumberSystems(Slide):
         def format_val_string(val):
             return f"{'+' if val >= 0 else ''}" + str(val)
 
+        # Keep track of all of the different amounts added or subtracted,
+        # to be able to take the average of all of the differences later on
+        # when introducing the rational numbers
         self.increment_vals.append(val)
 
-        lhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2=format_val_string(-val), perform_arithmetic=True)
+        # Add the new (imagined) bank transaction to be able to calculate the
+        # account balance of the previous day
+        lhs_summand_transform = self.variable_val.return_translate_animation(
+            new_lhs_prt1=f"x_{{{len(self.increment_vals)}}}",
+            new_lhs_prt2=format_val_string(-val),
+            perform_arithmetic=True
+        )
         self.play(lhs_summand_transform, run_time=1.5)
 
         self.next_slide()
@@ -227,8 +241,6 @@ class IntroduceNumberSystems(Slide):
         self.remove(br, label)
 
     def experimentation_add_subtract(self):
-        self.increment_vals = []
-
         self.slide_incr(1, 0.75)
         self.next_slide()
 
@@ -342,7 +354,7 @@ class IntroduceNumberSystems(Slide):
             flatten_arrows_animations.append(AnimationGroup(
                 Transform(current_arrow['a'], new_joined_line),
                 FadeOut(current_arrow['l'][0]),
-                Transform(current_arrow['l'][1], resulting_line_label[i], path_arc=-PI)
+                Transform(current_arrow['l'][1], resulting_line_label[i])
             ))
 
         self.play(AnimationGroup(*flatten_arrows_animations, lag_ratio=0.1), run_time=2)
@@ -376,9 +388,9 @@ class IntroduceNumberSystems(Slide):
         new_label[0:3].set_color(GREEN)
         new_label[-1].set_color(RED)
 
-        following_dot = Dot(ORIGIN, color=GREEN, radius=DEFAULT_DOT_RADIUS * 0.9).set_z_index(-1)
-        following_dot.add_updater(lambda mobj: mobj.move_to(new_resulting_line.get_end()[0] * RIGHT))
-        self.add(following_dot)
+        self.following_dot = Dot(ORIGIN, color=GREEN, radius=DEFAULT_DOT_RADIUS * 0.9).set_z_index(-1)
+        self.following_dot.add_updater(lambda mobj: mobj.move_to(new_resulting_line.get_end()[0] * RIGHT))
+        self.add(self.following_dot)
 
         self.variable_val.__init__(tex_location=self.TEX_LOC, lhs_prt1=r"\mu", rhs_prt1=r"\text{\large ?}", lhs_prt1_color=GREEN, rhs_prt1_color=RED)
 
@@ -400,7 +412,7 @@ class IntroduceNumberSystems(Slide):
             Write(self.variable_val, run_time=2.5),
         )
 
-        following_dot.set_z_index(1)
+        self.following_dot.set_z_index(1)
 
         self.next_slide()
 
@@ -437,6 +449,12 @@ class IntroduceNumberSystems(Slide):
 
         variable_val_transform_animation = self.variable_val.return_translate_animation(new_rhs_prt1=str(scaled_num), new_rhs_prt1_color=WHITE, perform_arithmetic=True)
 
+        # TODO: Consider a better way to fix issue when consolidating all submobjects
+        # back into self.number_line
+        original_number_line_submobjects = [*(current_submobject for current_submobject in self.number_line.submobjects)]
+        original_number_line_ticks = self.number_line.get_tick_marks()
+        original_number_line_labels = self.number_line.numbers
+
         self.play(
             *((
                 (
@@ -466,6 +484,9 @@ class IntroduceNumberSystems(Slide):
 
         self.wait()
 
+        # Remove all now orphaned submobjects and replace them with the
+        # actully usable parent (self.number_line)
+        self.remove(*original_number_line_submobjects, *original_number_line_labels, *original_number_line_ticks)
         self.add(self.number_line)
 
         # Somehow have to add updater after playing animation, since the mobjects in self.pointer_label.submobjects apparently
@@ -475,6 +496,46 @@ class IntroduceNumberSystems(Slide):
 
         self.wait()
 
+    def introduce_real_numbers(self):
+        variable_val_transform_animation = self.variable_val.return_translate_animation(new_lhs_prt1="x", new_rhs_prt1=r"\sqrt{2}", new_lhs_prt1_color=WHITE, perform_arithmetic=True)
+
+        self.play(variable_val_transform_animation)
+        self.next_slide()
+
+        self.hole = Dot(self.nl_to_coords(np.sqrt(2)), radius=DEFAULT_DOT_RADIUS * 0.9, fill_color=BLACK, stroke_color=RED, stroke_width=1)
+        new_pointer_label = Text("Keine Rationale Zahl", font_size=20, color=RED).move_to(self.number_line.n2p(np.sqrt(2))).align_to(self.pointer_label, DOWN)
+
+        self.play(
+            ReplacementTransform(self.following_dot, self.hole),
+            self.value_tracker @ np.sqrt(2),
+            ReplacementTransform(self.pointer_label, new_pointer_label),
+            self.pointer.animate.set_color(RED),
+        )
+
+        # Update attributes of self to reflect scene changes
+        del self.following_dot
+        self.pointer_label = new_pointer_label
+
+        self.play(
+            self.hole.animate.set_z_index(2),
+            FadeOut(self.variable_val, self.number_line),
+        )
+
+    def conclusion(self):
+        self.play(FadeOut(self.hole, self.pointer, self.pointer_label))
+
+        square = Square()
+        square_label = VGroup(MathTex("1", font_size=20).next_to(square, DOWN), MathTex("1", font_size=20).next_to(square, RIGHT))
+        diagonal = LabeledLine("\\sqrt{2}", label_config={"color": YELLOW}, box_config={"color": BLACK}, frame_config = {"color": BLACK}, start=square.get_corner(DL), end=square.get_corner(UR), color=YELLOW)
+        square_with_diagonal = VGroup(square, square_label, diagonal)
+
+        money_svg = SVGMobject("assets/money.svg", stroke_color=RED, fill_opacity=1, width=2)
+
+        pie = SVGMobject("assets/pie-chart.svg", fill_color=WHITE, stroke_color=GRAY, fill_opacity=1, width=2)
+
+        self.play(
+            Write(VGroup(square_with_diagonal, money_svg, pie).arrange())
+        )
 
     def construct(self):
         # self.start_skip_animations()
@@ -510,7 +571,12 @@ class IntroduceNumberSystems(Slide):
         self.next_slide()
         self.introduction_whole_numbers()
 
-        # self.stop_skip_animations()
-
         self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
+        # self.stop_skip_animations()
         self.introduction_rational_numbers()
+        self.next_slide()
+
+        self.introduce_real_numbers()
+        self.next_slide()
+
+        self.conclusion()

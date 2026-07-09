@@ -78,3 +78,22 @@ etc. for rest of animations. I could also always fade between me with pizza some
 perhaps for the other numbers I can do something with average and the length of a square.
 
 Reflection: What did we do? We had a problem we couldn't solve, so we introduced new numbers. What if we did that for $\sqrt{-1}$ -> New number $i$. Well no, all numbers multiplied by themselves have to be positive. Sometimes numbers can be incredibly useful, despite being somewhat abstract. Negative numbers? What are negative apples? What is one quarter of a person? Does that count the pizza I ate today? As long as internally consistant a-ok.
+
+---
+
+Review (auf den gleichen Stand):
+
+- Zwei wichtige Sachen, aus der Einleitung:
+  - Abstraktheit kann ohne weiteres Suchen sinnlos oder gar unlogisch wirken.
+    - Negative Zahlen? Gibt es negative Menschen? Gibt es imaginäre Menschen? Gibt es die Hälfte eines Menschen?
+  - Was machen wir wenn wir ein algebraisches Problem haben, was wir nicht lösen können? Eine höhere Abstraktionsstufe gehen
+    - Gleiches anwenden bei den reelen Zahlen
+
+>[!important]
+> Begriffe wie Reele Zahlen, Rationale Zahlen, oder Ganze Zahlen klären.
+
+- Sehr schnell noch auf Reele Zahlen eingehen -> Undefiniert nicht klar am Zahlenstrahl erkennbar. Man muss sich vorstellen es gäbe ein Loch, welches man mathematisch zeigen muss.
+
+- Dann wieder Zusammenfassung eventuell? Vielleicht inkludiere ich die Zusammenfassung jetzt (nachdem ich auf die reelen Zahlen eingegangen bin), und sage stattdessen am Anfang, dass ich es scheiße davor präsentiert habe und alle auf denselben Stand bringen möchte. Dann am Anfang ganz kurz ein review machen, mit den natürlichen, ganzen, und reelen Zahlen. Wie wir ein algebraisches PRoblem hatten, und dieses nicht lösen konnten und dann ein Abstraktionslevel höher gegangen sind. Wäre ne gute Einleitung um in den reelen Zahlen wieder einzusteigen.
+
+
