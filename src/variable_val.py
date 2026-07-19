@@ -53,9 +53,9 @@ class VariableVal(MathTex):
 
         # Only change if you know what you're doing. Quite a lot of stuff is specificially
         # hardcoded for a specific type of animation
-        self.INTRODUCE_ANIMATION = Write
-        self.TRANSFORM_ANIMATION = ReplacementTransform
-        self.REMOVER_ANIMATION = FadeOut
+        self.introduce_animation = Write
+        self.transform_animation = ReplacementTransform
+        self.remove_animation = FadeOut
 
         self.update_mobject()
 
@@ -152,7 +152,17 @@ class VariableVal(MathTex):
         self.transform_target = None
         self.to_be_removed = []
 
-    def process_animate_part(self, animation_list: list[Animation], src_mobj, dest_mobj, **animation_kwargs):
+    def process_animate_part(
+        self,
+        animation_list: list[Animation],
+        src_mobj: Mobject | None,
+        dest_mobj: Mobject | None,
+        *,
+        transform_animation,
+        introduce_animation,
+        remove_animation,
+        **animation_kwargs
+    ):
         # Process delay copied to https://github.com/TheMathematicFanatic/MF_Tools/blob/91760a6a7d69f88235034ef043a93a2d12c18b81/src/MF_Tools/transforms.py#L155
         delay = animation_kwargs.pop("delay", 0)
         if delay != 0:
@@ -168,9 +178,12 @@ class VariableVal(MathTex):
             animation_kwargs["rate_func"] = new_rate_func
             animation_kwargs["run_time"] = new_run_time
 
-        def is_empty(mobj):
+        def is_empty(mobj: Mobject | None):
             is_empty_condition = lambda tex_part: not tex_part or tex_part.tex_string == self.zero_width_char
 
+            # If mobj is VGroup, check whether all of the submobjects are empty. If so, the parent object is
+            # considered empty. If a single submobject, however, is not empty, the parent mobject is not
+            # considered empty
             if type(mobj) is VGroup:
                 self.to_be_removed.append(mobj)
 
@@ -192,15 +205,15 @@ class VariableVal(MathTex):
             if is_empty(dest_mobj):
                 return
             else:
-                # animation_list.append(self.INTRODUCE_ANIMATION(dest_mobj, **animation_kwargs))
-                animation_list.append(Write(dest_mobj, remover=True, **animation_kwargs))
+                # animation_list.append(self.introduce_animation(dest_mobj, **animation_kwargs))
+                animation_list.append(introduce_animation(dest_mobj, remover=True, **animation_kwargs))
         else:
             if is_empty(dest_mobj):
                 # Opacity gets set back to one, once all of submobjects of self have been updated
                 # to reflect the new changes that couldn't be done using Transform
-                animation_list.append(self.REMOVER_ANIMATION(src_mobj, **animation_kwargs))
+                animation_list.append(remove_animation(src_mobj, **animation_kwargs))
             else:
-                animation_list.append(self.TRANSFORM_ANIMATION(src_mobj, dest_mobj, **animation_kwargs))
+                animation_list.append(transform_animation(src_mobj, dest_mobj, **animation_kwargs))
 
     """
     Any arguments left empty will default to the value of self
@@ -221,8 +234,15 @@ class VariableVal(MathTex):
         new_rhs_prt2_color: ManimColor | None = None,
         *,
         perform_arithmetic,
+        custom_transform_animation: Animation | None = None,
+        custom_introduce_animation: Animation | None = None,
+        custom_remove_animation: Animation | None = None,
         **transform_kwargs,
     ) -> AnimationGroup:
+
+        transform_animation = self.transform_animation if custom_transform_animation is None else custom_transform_animation
+        introduce_animation = self.introduce_animation if custom_introduce_animation is None else custom_introduce_animation
+        remove_animation = self.remove_animation if custom_remove_animation is None else custom_remove_animation
 
         kwargs = {}
         kwargs["tex_location"] = self.tex_location if new_tex_location is None else new_tex_location
@@ -240,17 +260,71 @@ class VariableVal(MathTex):
         animations: list[Animation] = []
 
         if perform_arithmetic:
-            self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj())
-            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_l2_mobj(), delay=0.5)
-            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj())
-            self.process_animate_part(animations, VGroup(self.get_r1_mobj(), self.get_r2_mobj()), self.transform_target.get_r1_mobj())
-            self.process_animate_part(animations, None, self.transform_target.get_r2_mobj())
+            self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_l2_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation,
+                                      delay=0.5
+                                      )
+
+            self.process_animate_part(animations, self.get_equal_sign_mobj(),
+                                      self.transform_target.get_equal_sign_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, VGroup(self.get_r1_mobj(), self.get_r2_mobj()),
+                                      self.transform_target.get_r1_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, None,
+                                      self.transform_target.get_r2_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
         else:
-            self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj())
-            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj())
-            self.process_animate_part(animations, self.get_r1_mobj(), self.transform_target.get_r1_mobj())
-            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(), path_arc=PI)
-            self.process_animate_part(animations, None, self.transform_target.get_l2_mobj())
+            self.process_animate_part(animations, self.get_l1_mobj(),
+                                      self.transform_target.get_l1_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, self.get_r1_mobj(), self.transform_target.get_r1_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation
+                                      )
+
+            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation,
+                                      path_arc=PI
+                                      )
+
+            self.process_animate_part(animations, None, self.transform_target.get_l2_mobj(),
+                                      introduce_animation=introduce_animation,
+                                      remove_animation=remove_animation,
+                                      transform_animation=transform_animation,
+                                      )
 
         animation = AnimationGroup(*animations)
         setattr(animation, "original_parent_mobject", self)
@@ -259,7 +333,7 @@ class VariableVal(MathTex):
         # ReplacementTransform or something similar is used, meaning that mobB should be added to
         # the screen and the initial state of mobA reset
         def patched_clean_up_meth(self, scene):
-            super(AnimationGroup, self).clean_up_from_scene(scene)
+            AnimationGroup.clean_up_from_scene(self, scene)
 
             scene.add(self.original_parent_mobject)
             scene.remove(self.original_parent_mobject)

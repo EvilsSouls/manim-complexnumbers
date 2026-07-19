@@ -1,7 +1,7 @@
 import math
 
 from variable_val import VariableVal
-from utils import clamp_loc_horiz
+from utils import center_markup_text, clamp_loc_horiz
 
 import numpy as np
 from numpy.random import default_rng
@@ -497,17 +497,32 @@ class IntroduceNumberSystems(Slide):
         self.wait()
 
     def introduce_real_numbers(self):
+        # Move onto new algebraic problem: Is the equation x^2=2 an impossible problem to solve in the realm of Rational Numbers?
+        new_problem_animation = self.variable_val.return_translate_animation(
+            new_lhs_prt1="x^2",
+            new_rhs_prt1="2",
+            perform_arithmetic=True,
+            new_lhs_prt1_color=WHITE,
+            # Wrapper function that passes stretch=False and replace_mobject_with_target_in_scene to FadeTransform Animation Class
+            custom_transform_animation=lambda *args, **kwargs: FadeTransform(*args, **kwargs, stretch=False, replace_mobject_with_target_in_scene=False)
+        )
+        self.play(new_problem_animation)
+        self.next_slide("Wenn man nach x auflöst, erhält man die Quadratwurzel von zwei.\nWie kann man diese als Bruch darstellen?")
+
         variable_val_transform_animation = self.variable_val.return_translate_animation(new_lhs_prt1="x", new_rhs_prt1=r"\sqrt{2}", new_lhs_prt1_color=WHITE, perform_arithmetic=True)
-
         self.play(variable_val_transform_animation)
-        self.next_slide()
+        self.next_slide(notes="Ein Loch im Zahlenstrahl vorstellen")
 
-        self.hole = Dot(self.nl_to_coords(np.sqrt(2)), radius=DEFAULT_DOT_RADIUS * 0.9, fill_color=BLACK, stroke_color=RED, stroke_width=1)
-        new_pointer_label = Text("Keine Rationale Zahl", font_size=20, color=RED).move_to(self.number_line.n2p(np.sqrt(2))).align_to(self.pointer_label, DOWN)
+        self.hole = Dot(self.nl_to_coords(np.sqrt(2)), radius=DEFAULT_DOT_RADIUS * 0.9, fill_color=BLACK, stroke_color=self.NAT_POINT_COLOR, stroke_width=1).set_z_index(2)
+        new_pointer_label = Text("Keine Rationale Zahl", font_size=20, color=RED)
 
+        # Must predict position of new_pointer_label to match .next_to(self.pointer, DOWN) due to self.value_tracker not matching np.sqrt(2) yet
+        new_pointer_label.move_to(self.nl_to_coords(np.sqrt(2))).align_to(self.pointer_label, DOWN)
+
+        # Move rest of mobjects to sqrt(2) as well, with the conjecture of the irrationality of √2
         self.play(
             ReplacementTransform(self.following_dot, self.hole),
-            self.value_tracker @ np.sqrt(2),
+            self.value_tracker @ np.sqrt(2), # Move pointer and pointer_label to sqrt(2)
             ReplacementTransform(self.pointer_label, new_pointer_label),
             self.pointer.animate.set_color(RED),
         )
@@ -516,9 +531,74 @@ class IntroduceNumberSystems(Slide):
         del self.following_dot
         self.pointer_label = new_pointer_label
 
+        self.next_slide(notes="Bruch besteht aus zwei ganzen Zahlen. \n (Ganze Zahlen = Negativ und Positiv) \n Fragen ob jeder mit vollständig gekürzt verstanden hat")
+
+        sqrt = MathTex(r"\sqrt{2}", color=RED, font_size=55).next_to(self.pointer, UP)
+        # Create copies of pointer and pointer_label that transform their position with `sqrt`
+        temp_pointer = self.pointer.copy().clear_updaters()
+        temp_label = self.pointer_label.copy().clear_updaters()
+
+        temp_pointer.add_updater(lambda mobj: mobj.next_to(self.hole, DOWN), call_updater=True)
+        temp_label.add_updater(lambda mobj: mobj.next_to(temp_pointer, DOWN), call_updater=True)
+
+        # Need to already process sqrt_formula, to match positioning of √2 sqrt and sqrt_formula
+        sqrt_formula = MathTex(r"\frac{a}{b}", r"=", r"\sqrt{2}").scale(1.5)
+        # Match positioning of √2 glyphs from sqrt and sqrt_formula MathTex objects
+        pos_diff = sqrt_formula[2].get_center() - sqrt.get_center()
+        sqrt.shift(pos_diff)
+
+        # Position Change should be imperceptable.
+        # Should be safe to replace self.pointer and self.pointer_label with temp_pointer and temp_label
+        # in order to translate position smoothly using updaters
+        self.replace(self.pointer, temp_pointer)
+        self.replace(self.pointer_label, temp_label)
+
         self.play(
-            self.hole.animate.set_z_index(2),
+            ReplacementTransform(self.hole, sqrt), #TODO: Check why this works instead of Transform, because there was some thought I think I had when doing this
             FadeOut(self.variable_val, self.number_line),
+            run_time=1.5
+        )
+
+        definition_rational_num = center_markup_text(
+            "Jede Rationale Zahl kann durch ein ",
+            "<i>vollständig gekürzten Bruch</i> dargestellt werden",
+            font_size=30
+        ).move_to(self.TEX_LOC)
+
+        self.play(
+            Write(definition_rational_num),
+        )
+
+        self.next_slide(notes="Wissen nicht ob Quadratwurzel 2 rationale Zahl ist. \n kann sie als vollständig gekürzter Bruch dargestellt werden?")
+
+        self.play(
+            FadeOut(temp_pointer, temp_label),
+            mft.TransformByGlyphMap(
+                sqrt,
+                sqrt_formula,
+                ([0], [2]),
+                (Write, [0, 1]),
+                mobA_submobject_index=[],
+                mobB_submobject_index=[],
+                default_transformer=ReplacementTransform,
+                run_time=2,
+            )
+        )
+
+        sqrt_formula_squared = MathTex(r"\left(", r"\frac{a}{b}", r"\right)", r"^2", r"=", r"2").scale(1.5)
+
+        self.play(
+            mft.TransformByGlyphMap(
+                sqrt_formula,
+                sqrt_formula_squared,
+                ([0], [1]),
+                ([1], [4]),
+                ([2], [5]),
+                (Write, [0, 2]),
+                (Write, [3]),
+                mobA_submobject_index=[],
+                mobB_submobject_index=[],
+            )
         )
 
     def conclusion(self):
@@ -538,7 +618,7 @@ class IntroduceNumberSystems(Slide):
         )
 
     def construct(self):
-        # self.start_skip_animations()
+        self.start_skip_animations()
         self.next_slide()
         self.introduction(16)
 
@@ -572,8 +652,8 @@ class IntroduceNumberSystems(Slide):
         self.introduction_whole_numbers()
 
         self.next_slide("Wir setzen unsere Variable zu 5 zurück") # TODO: Somehow replace this with Jonas Weinmarkt analogy perhaps — Wants to get average amount of money he spent each day
-        # self.stop_skip_animations()
         self.introduction_rational_numbers()
+        self.stop_skip_animations()
         self.next_slide()
 
         self.introduce_real_numbers()
