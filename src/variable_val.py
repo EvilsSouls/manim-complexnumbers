@@ -4,9 +4,11 @@ from manim.animation.transform import _MethodAnimation
 
 from manim.typing import Vector3DLike
 from manim.utils.color import ManimColor
-from typing import cast
+from typing import Any, cast
 
 from enum import Enum
+
+type CustomTransformTarget = tuple[str, str] | tuple[str, str, dict[str, Any]]
 
 class VariableVal(MathTex):
     def __init__(
@@ -44,11 +46,11 @@ class VariableVal(MathTex):
         self.to_be_removed = []
 
         self.PartIndices = Enum("PartIndices", [
-            ("L1_INDEX", 0),
-            ("L2_INDEX", 1),
-            ("EQ_INDEX", 2),
-            ("R1_INDEX", 3),
-            ("R2_INDEX", 4)
+            ("L1", 0),
+            ("L2", 1),
+            ("EQ", 2),
+            ("R1", 3),
+            ("R2", 4)
         ])
 
         # Only change if you know what you're doing. Quite a lot of stuff is specificially
@@ -100,19 +102,19 @@ class VariableVal(MathTex):
         self._r2_str = value
 
     def get_l1_mobj(self) -> MathTexPart:
-        return cast(MathTexPart, self.submobjects[self.PartIndices.L1_INDEX.value])
+        return cast(MathTexPart, self.submobjects[self.PartIndices.L1.value])
 
     def get_l2_mobj(self) -> MathTexPart:
-        return cast(MathTexPart, self.submobjects[self.PartIndices.L2_INDEX.value])
+        return cast(MathTexPart, self.submobjects[self.PartIndices.L2.value])
 
     def get_equal_sign_mobj(self) -> MathTexPart:
-        return cast(MathTexPart, self.submobjects[self.PartIndices.EQ_INDEX.value])
+        return cast(MathTexPart, self.submobjects[self.PartIndices.EQ.value])
 
     def get_r1_mobj(self) -> MathTexPart:
-        return cast(MathTexPart, self.submobjects[self.PartIndices.R1_INDEX.value])
+        return cast(MathTexPart, self.submobjects[self.PartIndices.R1.value])
 
     def get_r2_mobj(self) -> MathTexPart:
-        return cast(MathTexPart, self.submobjects[self.PartIndices.R2_INDEX.value])
+        return cast(MathTexPart, self.submobjects[self.PartIndices.R2.value])
 
     def update_mobject(self) -> None:
         # Initialize MathTex object, with each part being its own SingleStringMathTex object
@@ -215,12 +217,6 @@ class VariableVal(MathTex):
             else:
                 animation_list.append(transform_animation(src_mobj, dest_mobj, **animation_kwargs))
 
-    """
-    Any arguments left empty will default to the value of self
-
-    If perform_arithmetic is true lhs will be transformed into itself and rhs will be combined
-    else if perform_arithmetic is false, lhs_prt2 will be transformed into lhs_prt1 and the rest will stay the same
-    """
     def return_translate_animation(
         self,
         new_tex_location: Vector3DLike | None = None,
@@ -233,12 +229,16 @@ class VariableVal(MathTex):
         new_rhs_prt1_color: ManimColor | None = None,
         new_rhs_prt2_color: ManimColor | None = None,
         *,
-        perform_arithmetic,
+        combine_rhs: bool | None = None,
+        custom_transform_target: CustomTransformTarget | list[CustomTransformTarget] | None = None,
         custom_transform_animation: Animation | None = None,
         custom_introduce_animation: Animation | None = None,
         custom_remove_animation: Animation | None = None,
         **transform_kwargs,
     ) -> AnimationGroup:
+        """
+        Any arguments left empty will default to the value of self
+        """
 
         transform_animation = self.transform_animation if custom_transform_animation is None else custom_transform_animation
         introduce_animation = self.introduce_animation if custom_introduce_animation is None else custom_introduce_animation
@@ -257,9 +257,15 @@ class VariableVal(MathTex):
 
         self.transform_target = VariableVal(**kwargs)
 
+        print(f"transform target string: {self.transform_target.get_tex_string()}")
+
         animations: list[Animation] = []
 
-        if perform_arithmetic:
+        # Default behavior is transforming each respective part from self to its counterpart on self.transform_target.
+        # If combine_rhs is additionally set (default behavior), then rhs_prt1 and rhs_prt2 get combined into rhs_prt1 of self.transform_target
+        if custom_transform_target is None:
+            if combine_rhs == None: combine_rhs = True
+
             self.process_animate_part(animations, self.get_l1_mobj(), self.transform_target.get_l1_mobj(),
                                       introduce_animation=introduce_animation,
                                       remove_animation=remove_animation,
@@ -280,51 +286,132 @@ class VariableVal(MathTex):
                                       transform_animation=transform_animation
                                       )
 
-            self.process_animate_part(animations, VGroup(self.get_r1_mobj(), self.get_r2_mobj()),
-                                      self.transform_target.get_r1_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation
-                                      )
+            self.process_animate_part(
+                animations,
+                VGroup(self.get_r1_mobj(), self.get_r2_mobj()) if combine_rhs else self.get_r1_mobj(),
+                self.transform_target.get_r1_mobj(),
+                introduce_animation=introduce_animation,
+                remove_animation=remove_animation,
+                transform_animation=transform_animation
+            )
 
-            self.process_animate_part(animations, None,
-                                      self.transform_target.get_r2_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation
-                                      )
+            self.process_animate_part(
+                animations,
+                None if combine_rhs else self.get_r2_mobj(),
+                self.transform_target.get_r2_mobj(),
+                introduce_animation=introduce_animation,
+                remove_animation=remove_animation,
+                transform_animation=transform_animation
+            )
         else:
-            self.process_animate_part(animations, self.get_l1_mobj(),
-                                      self.transform_target.get_l1_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation
-                                      )
+            source_indices = set()
+            target_indices = set()
 
-            self.process_animate_part(animations, self.get_equal_sign_mobj(), self.transform_target.get_equal_sign_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation
-                                      )
+            if type(custom_transform_target) is tuple:
+                custom_transform_target = [custom_transform_target]
 
-            self.process_animate_part(animations, self.get_r1_mobj(), self.transform_target.get_r1_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation
-                                      )
+            if combine_rhs == None: combine_rhs = False
 
-            self.process_animate_part(animations, self.get_l2_mobj(), self.transform_target.get_r2_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation,
-                                      path_arc=PI
-                                      )
+            # Handle Custom Transform Targets
+            for current_custom_transform_target in cast(list[CustomTransformTarget], custom_transform_target):
+                if len(current_custom_transform_target) == 3:
+                    custom_source, custom_target, custom_transform_kwargs = current_custom_transform_target
+                elif len(current_custom_transform_target) == 2:
+                    custom_source, custom_target = current_custom_transform_target
+                    custom_transform_kwargs = {}
+                else:
+                    raise Exception("Invalid Custom Transform Target Length")
 
-            self.process_animate_part(animations, None, self.transform_target.get_l2_mobj(),
-                                      introduce_animation=introduce_animation,
-                                      remove_animation=remove_animation,
-                                      transform_animation=transform_animation,
-                                      )
+                # Keep Track of all of the parts that have custom connections
+                source_indices.add(custom_source)
+                target_indices.add(custom_target)
+
+                automatic_path_arc = np.pi if abs(self.PartIndices[custom_target].value - self.PartIndices[custom_source].value > 1) else 0
+
+                merged_kwargs = {"path_arc": automatic_path_arc}
+                merged_kwargs |= custom_transform_kwargs
+
+                if custom_transform_kwargs:
+                    merged_kwargs = {"path_arc": automatic_path_arc} | custom_transform_kwargs
+                else:
+                    merged_kwargs = {"path_arc": automatic_path_arc}
+
+                self.process_animate_part(
+                    animations,
+                    self.submobjects[self.PartIndices[custom_source].value],
+                    self.transform_target.submobjects[self.transform_target.PartIndices[custom_target].value], # Using self.transform_target.PartIndices shouldn't make a difference
+                    introduce_animation=introduce_animation,
+                    remove_animation=remove_animation,
+                    transform_animation=transform_animation,
+                    **merged_kwargs
+                )
+
+                print(f"Custom Transform: from {custom_source} to {custom_target}")
+
+            # If a custom connection is created between a source part p and a different target part q,
+            # then the same part of the transform_target as the source part p, will be orphaned, as no
+            # source part will now transform into it.
+            # As such any and all defined source_indices will have an orphaned target at their same position,
+            # as long as a custom target_index from a different connection is not also defined.
+            orphaned_targets = source_indices.difference(target_indices)
+            orphaned_sources = target_indices.difference(source_indices)
+
+            # If R1 and R2 of source get combined into R1 of target, then R2 of target is orphaned, as long as there is no
+            # custom connection towards it
+            if combine_rhs and not "R2" in target_indices: orphaned_targets.add("R2")
+
+            bound_parts = set(current_part.name for current_part in self.PartIndices).difference(source_indices, target_indices)
+
+            for current_orphan in orphaned_targets:
+                if current_orphan is not "R1" or not combine_rhs:
+                    # All other parts will simply be a direct translation from self to
+                    # self.transform_target (e.g. L1 of self will directly get translated to L1 of transform_target).
+                    # However, as custom_source of self does not translate to custom_source of transform_target, custom_source
+                    # of target must get introduced (if it exists, which in most cases it doesn't)
+                    self.process_animate_part(
+                        animations,
+                        None,
+                        self.transform_target.submobjects[self.transform_target.PartIndices[current_orphan].value], # Using self.transform_target.PartIndices shouldn't make a difference
+                        introduce_animation=introduce_animation,
+                        remove_animation=remove_animation,
+                        transform_animation=transform_animation,
+                    )
+
+            for current_orphan in orphaned_sources:
+                if current_orphan is not "R2" or not combine_rhs:
+                    # Same thing as above if statement but for removers. For perhaps a better insight see .../docs/variable_val_schematic.svg
+                    self.process_animate_part(
+                        animations,
+                        self.submobjects[self.PartIndices[current_orphan].value],
+                        None,
+                        introduce_animation=introduce_animation,
+                        remove_animation=remove_animation,
+                        transform_animation=transform_animation,
+                    )
+
+                    print(f"Removing Part {current_orphan}")
+
+            for current_part in bound_parts:
+                if not current_part == "R1" or not combine_rhs:
+                    self.process_animate_part(
+                        animations,
+                        self.submobjects[self.PartIndices[current_part].value],
+                        self.transform_target.submobjects[self.transform_target.PartIndices[current_part].value],
+                        introduce_animation=introduce_animation,
+                        remove_animation=remove_animation,
+                        transform_animation=transform_animation,
+                    )
+                else:
+                    self.process_animate_part(
+                        animations,
+                        VGroup(self.get_r1_mobj(), self.get_r2_mobj()),
+                        self.transform_target.get_r1_mobj(),
+                        introduce_animation=introduce_animation,
+                        remove_animation=remove_animation,
+                        transform_animation=transform_animation,
+                    )
+
+        print(f"Animations: {animations}")
 
         animation = AnimationGroup(*animations)
         setattr(animation, "original_parent_mobject", self)

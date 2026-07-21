@@ -198,7 +198,6 @@ class IntroduceNumberSystems(Slide):
         lhs_summand_transform = self.variable_val.return_translate_animation(
             new_lhs_prt1=f"x_{{{len(self.increment_vals)}}}",
             new_lhs_prt2=format_val_string(-val),
-            perform_arithmetic=True
         )
         self.play(lhs_summand_transform, run_time=1.5)
 
@@ -212,7 +211,7 @@ class IntroduceNumberSystems(Slide):
         label = MathTex(format_val_string(val), color=self.SUMMAND_COLOR).next_to(br, DOWN)
 
         # New Variable val with added summand (for example x = 3 + 2)
-        rhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2=format_val_string(val), perform_arithmetic=False)
+        rhs_summand_transform = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2=format_val_string(val), custom_transform_target=('L2', 'R2'))
 
         # Fade in the Bracket and Label and add the Summand to the already existing label of the variable val
         self.play(
@@ -226,9 +225,9 @@ class IntroduceNumberSystems(Slide):
 
         if unknown_result is False:
             # Transform to the sum of both summands
-            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value() + val:.0f}", new_rhs_prt2="", perform_arithmetic=True)
+            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value() + val:.0f}", new_rhs_prt2="")
         else:
-            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=r"\text{\large ?}", new_rhs_prt2="", new_rhs_prt1_color=RED, perform_arithmetic=True)
+            transform_to_sum = self.variable_val.return_translate_animation(new_rhs_prt1=r"\text{\large ?}", new_rhs_prt2="", new_rhs_prt1_color=RED)
 
         # Move the pointer to the result of the sum / difference and transform the label of the variable val to reflect the actual result of the sum
         self.play(
@@ -270,7 +269,7 @@ class IntroduceNumberSystems(Slide):
             dot_label.shift((dot.get_center()[0] - dot_label[0][1].get_center()[0]) * RIGHT)
             self.number_dots.add(VDict([('d', dot), ('l', dot_label)]))
 
-        transform_to_corrected_variable_val = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value():.0f}", new_rhs_prt1_color=WHITE, perform_arithmetic=True)
+        transform_to_corrected_variable_val = self.variable_val.return_translate_animation(new_rhs_prt1=f"{self.value_tracker.get_value():.0f}", new_rhs_prt1_color=WHITE)
         reversed_neg_nums = self.number_dots[-1:new_dots_len-1:-1]
         new_environment = MathTex(r"\mathbb{Z}", font_size=65).set_color(YELLOW).to_corner(UL, buff=0.25)
         self.play(
@@ -447,7 +446,7 @@ class IntroduceNumberSystems(Slide):
         self.abs_pointer_label = MathTex(str(abs(scaled_num)), font_size=35).next_to(self.pointer, DOWN, buff=0.2)
         self.pointer_label = MathTex(str(scaled_num), font_size=35).set_color(GREEN).move_to(self.abs_pointer_label.get_center())
 
-        variable_val_transform_animation = self.variable_val.return_translate_animation(new_rhs_prt1=str(scaled_num), new_rhs_prt1_color=WHITE, perform_arithmetic=True)
+        variable_val_transform_animation = self.variable_val.return_translate_animation(new_rhs_prt1=str(scaled_num), new_rhs_prt1_color=WHITE)
 
         # TODO: Consider a better way to fix issue when consolidating all submobjects
         # back into self.number_line
@@ -499,17 +498,18 @@ class IntroduceNumberSystems(Slide):
     def introduce_real_numbers(self):
         # Move onto new algebraic problem: Is the equation x^2=2 an impossible problem to solve in the realm of Rational Numbers?
         new_problem_animation = self.variable_val.return_translate_animation(
-            new_lhs_prt1="x^2",
+            new_lhs_prt1="x",
+            new_lhs_prt2="^2",
             new_rhs_prt1="2",
-            perform_arithmetic=True,
             new_lhs_prt1_color=WHITE,
             # Wrapper function that passes stretch=False and replace_mobject_with_target_in_scene to FadeTransform Animation Class
-            custom_transform_animation=lambda *args, **kwargs: FadeTransform(*args, **kwargs, stretch=False, replace_mobject_with_target_in_scene=False)
+            custom_transform_animation=lambda *args, **kwargs: FadeTransform(*args, **kwargs, stretch=False),
+            custom_introduce_animation=FadeIn
         )
         self.play(new_problem_animation)
         self.next_slide("Wenn man nach x auflöst, erhält man die Quadratwurzel von zwei.\nWie kann man diese als Bruch darstellen?")
 
-        variable_val_transform_animation = self.variable_val.return_translate_animation(new_lhs_prt1="x", new_rhs_prt1=r"\sqrt{2}", new_lhs_prt1_color=WHITE, perform_arithmetic=True)
+        variable_val_transform_animation = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt1=r"\sqrt{", new_rhs_prt2="2}", new_rhs_prt2_color=WHITE, custom_transform_target=[('L2', 'R1', {"path_arc": -np.pi}), ('R1', 'R2')])
         self.play(variable_val_transform_animation)
         self.next_slide(notes="Ein Loch im Zahlenstrahl vorstellen")
 

@@ -7,55 +7,35 @@ class TestVariableVal(Slide):
     def construct(self):
         self.variable_val = VariableVal(UP * 3, "x", "", "5")
 
-        transform_1 = self.variable_val.return_translate_animation(new_lhs_prt2="-3", perform_arithmetic=True)
+        transform_1 = self.variable_val.return_translate_animation(new_lhs_prt2="-3")
         self.play(transform_1)
 
-        self.wait()
-
-        transform_2 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="+3", perform_arithmetic=False)
+        transform_2 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="+3", custom_transform_target=('L2', 'R2'), combine_rhs=False)
         self.play(transform_2)
 
-        self.wait()
-
-        print("Submobjects 1: ", self.mobjects)
-
-        transform_3 = self.variable_val.return_translate_animation(new_rhs_prt1="8", new_rhs_prt2="", perform_arithmetic=True)
+        transform_3 = self.variable_val.return_translate_animation(new_rhs_prt1="8", new_rhs_prt2="")
         self.play(transform_3)
 
-        print("Submobjects 2: ", self.mobjects)
-
-        self.wait()
-
-        transform_4 = self.variable_val.return_translate_animation(new_lhs_prt2="+9", new_rhs_prt2="", perform_arithmetic=True)
+        transform_4 = self.variable_val.return_translate_animation(new_lhs_prt2="+9")
         self.play(transform_4)
 
-        transform_5 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="-9", perform_arithmetic=False)
+        transform_5 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="-9", custom_transform_target=('L2', 'R2'), combine_rhs=False)
         self.play(transform_5)
 
-        self.wait()
-
-        transform_6 = self.variable_val.return_translate_animation(new_rhs_prt1="-1", new_rhs_prt2="", perform_arithmetic=True)
+        transform_6 = self.variable_val.return_translate_animation(new_rhs_prt1="-1", new_rhs_prt2="")
         self.play(transform_6)
 
-        print("Submobjects 3 combination: ", self.mobjects)
-
-        self.wait()
-
-        transform_7 = self.variable_val.return_translate_animation(new_rhs_prt1="5", perform_arithmetic=True)
+        transform_7 = self.variable_val.return_translate_animation(new_lhs_prt2="-6")
         self.play(transform_7)
 
-        print("Submobjects 4 combination: ", self.mobjects)
+        transform_8 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt2="+6", custom_transform_target=('L2', 'R2'), combine_rhs=False)
+        self.play(transform_8)
 
-        self.wait()
+        transform_9 = self.variable_val.return_translate_animation(new_rhs_prt1="5", new_rhs_prt2="")
+        self.play(transform_9)
 
-        for mobject in self.mobjects:
-            text = Text(f"Removing submobject: {mobject}").shift(DOWN*2)
-            self.play(Write(text))
-            self.remove(mobject)
-            self.play(Unwrite(text))
+        transform_10 = self.variable_val.return_translate_animation(new_lhs_prt1="x", new_lhs_prt2="^2", new_rhs_prt1="2", new_rhs_prt2="")
+        self.play(transform_10)
 
-        self.wait()
-
-        self.add(self.variable_val)
-
-        self.wait()
+        transform_11 = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt1=r"\sqrt{", new_rhs_prt2=r"2}", custom_transform_target=[('L2', 'R1'), ('R1', 'R2')], combine_rhs=False, new_rhs_prt2_color=WHITE)
+        self.play(transform_11)
