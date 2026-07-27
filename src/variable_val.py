@@ -24,6 +24,7 @@ class VariableVal(MathTex):
         rhs_prt2_color=RED,
         *,
         separator="=",
+        **kwargs
     ):
         self.tex_location = tex_location
 
@@ -58,6 +59,8 @@ class VariableVal(MathTex):
         self.introduce_animation = Write
         self.transform_animation = ReplacementTransform
         self.remove_animation = FadeOut
+
+        self.mathtex_kwargs = kwargs
 
         self.update_mobject()
 
@@ -118,7 +121,7 @@ class VariableVal(MathTex):
 
     def update_mobject(self) -> None:
         # Initialize MathTex object, with each part being its own SingleStringMathTex object
-        super().__init__(self.l1_str, self.l2_str, self.separator, self.r1_str, self.r2_str)
+        super().__init__(self.l1_str, self.l2_str, self.separator, self.r1_str, self.r2_str, **self.mathtex_kwargs)
 
         # Set colors of SingleStringMathTex objects
         self.get_l1_mobj().set_color(self.l1_color)
@@ -257,8 +260,6 @@ class VariableVal(MathTex):
 
         self.transform_target = VariableVal(**kwargs)
 
-        print(f"transform target string: {self.transform_target.get_tex_string()}")
-
         animations: list[Animation] = []
 
         # Default behavior is transforming each respective part from self to its counterpart on self.transform_target.
@@ -346,8 +347,6 @@ class VariableVal(MathTex):
                     **merged_kwargs
                 )
 
-                print(f"Custom Transform: from {custom_source} to {custom_target}")
-
             # If a custom connection is created between a source part p and a different target part q,
             # then the same part of the transform_target as the source part p, will be orphaned, as no
             # source part will now transform into it.
@@ -363,7 +362,7 @@ class VariableVal(MathTex):
             bound_parts = set(current_part.name for current_part in self.PartIndices).difference(source_indices, target_indices)
 
             for current_orphan in orphaned_targets:
-                if current_orphan is not "R1" or not combine_rhs:
+                if current_orphan != "R1" or not combine_rhs:
                     # All other parts will simply be a direct translation from self to
                     # self.transform_target (e.g. L1 of self will directly get translated to L1 of transform_target).
                     # However, as custom_source of self does not translate to custom_source of transform_target, custom_source
@@ -378,7 +377,7 @@ class VariableVal(MathTex):
                     )
 
             for current_orphan in orphaned_sources:
-                if current_orphan is not "R2" or not combine_rhs:
+                if current_orphan != "R2" or not combine_rhs:
                     # Same thing as above if statement but for removers. For perhaps a better insight see .../docs/variable_val_schematic.svg
                     self.process_animate_part(
                         animations,
@@ -388,8 +387,6 @@ class VariableVal(MathTex):
                         remove_animation=remove_animation,
                         transform_animation=transform_animation,
                     )
-
-                    print(f"Removing Part {current_orphan}")
 
             for current_part in bound_parts:
                 if not current_part == "R1" or not combine_rhs:
@@ -410,8 +407,6 @@ class VariableVal(MathTex):
                         remove_animation=remove_animation,
                         transform_animation=transform_animation,
                     )
-
-        print(f"Animations: {animations}")
 
         animation = AnimationGroup(*animations)
         setattr(animation, "original_parent_mobject", self)

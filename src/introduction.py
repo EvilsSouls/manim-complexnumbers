@@ -502,120 +502,269 @@ class IntroduceNumberSystems(Slide):
             new_lhs_prt2="^2",
             new_rhs_prt1="2",
             new_lhs_prt1_color=WHITE,
+            custom_transform_target=("L2", "L2", {"delay": 0}),
             # Wrapper function that passes stretch=False and replace_mobject_with_target_in_scene to FadeTransform Animation Class
             custom_transform_animation=lambda *args, **kwargs: FadeTransform(*args, **kwargs, stretch=False),
-            custom_introduce_animation=FadeIn
+            custom_introduce_animation=FadeIn,
+            combine_rhs=True
         )
         self.play(new_problem_animation)
-        self.next_slide("Wenn man nach x auflöst, erhält man die Quadratwurzel von zwei.\nWie kann man diese als Bruch darstellen?")
+        self.next_slide("Wenn man nach x löst, erhält man die Quadratwurzel von zwei.\nWie kann man diese als Bruch darstellen?")
 
         variable_val_transform_animation = self.variable_val.return_translate_animation(new_lhs_prt2="", new_rhs_prt1=r"\sqrt{", new_rhs_prt2="2}", new_rhs_prt2_color=WHITE, custom_transform_target=[('L2', 'R1', {"path_arc": -np.pi}), ('R1', 'R2')])
-        self.play(variable_val_transform_animation)
-        self.next_slide(notes="Ein Loch im Zahlenstrahl vorstellen")
 
         self.hole = Dot(self.nl_to_coords(np.sqrt(2)), radius=DEFAULT_DOT_RADIUS * 0.9, fill_color=BLACK, stroke_color=self.NAT_POINT_COLOR, stroke_width=1).set_z_index(2)
-        new_pointer_label = Text("Keine Rationale Zahl", font_size=20, color=RED)
+        new_pointer_label = MathTex(r"\sqrt{2}", color=RED)
 
-        # Must predict position of new_pointer_label to match .next_to(self.pointer, DOWN) due to self.value_tracker not matching np.sqrt(2) yet
-        new_pointer_label.move_to(self.nl_to_coords(np.sqrt(2))).align_to(self.pointer_label, DOWN)
+        # Update Position of new_pointer_label to match the position after animation
+        self.pointer.save_state()
+        current_value_tracker_val = ~self.value_tracker
 
-        # Move rest of mobjects to sqrt(2) as well, with the conjecture of the irrationality of √2
+        self.value_tracker @= np.sqrt(2)
+        self.pointer.update()
+        new_pointer_label.next_to(self.pointer, DOWN)
+
+        self.value_tracker @= current_value_tracker_val
+        self.pointer.restore()
+
         self.play(
             ReplacementTransform(self.following_dot, self.hole),
-            self.value_tracker @ np.sqrt(2), # Move pointer and pointer_label to sqrt(2)
             ReplacementTransform(self.pointer_label, new_pointer_label),
+            self.value_tracker @ np.sqrt(2), # Move pointer and pointer_label to sqrt(2)
+            variable_val_transform_animation,
             self.pointer.animate.set_color(RED),
-        )
-
-        # Update attributes of self to reflect scene changes
-        del self.following_dot
-        self.pointer_label = new_pointer_label
-
-        self.next_slide(notes="Bruch besteht aus zwei ganzen Zahlen. \n (Ganze Zahlen = Negativ und Positiv) \n Fragen ob jeder mit vollständig gekürzt verstanden hat")
-
-        sqrt = MathTex(r"\sqrt{2}", color=RED, font_size=55).next_to(self.pointer, UP)
-        # Create copies of pointer and pointer_label that transform their position with `sqrt`
-        temp_pointer = self.pointer.copy().clear_updaters()
-        temp_label = self.pointer_label.copy().clear_updaters()
-
-        temp_pointer.add_updater(lambda mobj: mobj.next_to(self.hole, DOWN), call_updater=True)
-        temp_label.add_updater(lambda mobj: mobj.next_to(temp_pointer, DOWN), call_updater=True)
-
-        # Need to already process sqrt_formula, to match positioning of √2 sqrt and sqrt_formula
-        sqrt_formula = MathTex(r"\frac{a}{b}", r"=", r"\sqrt{2}").scale(1.5)
-        # Match positioning of √2 glyphs from sqrt and sqrt_formula MathTex objects
-        pos_diff = sqrt_formula[2].get_center() - sqrt.get_center()
-        sqrt.shift(pos_diff)
-
-        # Position Change should be imperceptable.
-        # Should be safe to replace self.pointer and self.pointer_label with temp_pointer and temp_label
-        # in order to translate position smoothly using updaters
-        self.replace(self.pointer, temp_pointer)
-        self.replace(self.pointer_label, temp_label)
-
-        self.play(
-            ReplacementTransform(self.hole, sqrt), #TODO: Check why this works instead of Transform, because there was some thought I think I had when doing this
-            FadeOut(self.variable_val, self.number_line),
             run_time=1.5
         )
 
+        self.next_slide(notes="Wir kennen nur alle Zahlen die als Brüche dargestellt werden können. Wie kann man sqrt 2 als Bruch darstellen?")
+
         definition_rational_num = center_markup_text(
-            "Jede Rationale Zahl kann durch ein ",
-            "<i>vollständig gekürzten Bruch</i> dargestellt werden",
+            "Jede rationale Zahl kann als",
+            "<i>vollständig gekürzter Bruch</i> dargestellt werden",
             font_size=30
         ).move_to(self.TEX_LOC)
 
+        formula = MathTex(r"\frac{a}{b}", "=", r"\sqrt{2}", font_size=70)
+        formula.shift(ORIGIN - formula.submobjects[1].get_center())
+
+        self.play(
+            FadeOut(self.variable_val, self.number_line, self.pointer, self.hole),
+            ReplacementTransform(new_pointer_label, formula.submobjects[2])
+        )
+
         self.play(
             Write(definition_rational_num),
+            Write(VGroup(formula.submobjects[0:-1])),
+            run_time=2
         )
 
-        self.next_slide(notes="Wissen nicht ob Quadratwurzel 2 rationale Zahl ist. \n kann sie als vollständig gekürzter Bruch dargestellt werden?")
+        unfolded_formula = MathTex(r"\frac{a}{b} = \sqrt{2}", font_size=70).move_to(formula)
+        self.add(formula)
+        self.remove(formula)
+        self.add(unfolded_formula)
 
-        self.play(
-            FadeOut(temp_pointer, temp_label),
-            mft.TransformByGlyphMap(
-                sqrt,
-                sqrt_formula,
-                ([0], [2]),
-                (Write, [0, 1]),
-                mobA_submobject_index=[],
-                mobB_submobject_index=[],
-                default_transformer=ReplacementTransform,
-                run_time=2,
-            )
-        )
-
-        sqrt_formula_squared = MathTex(r"\left(", r"\frac{a}{b}", r"\right)", r"^2", r"=", r"2").scale(1.5)
+        squared_formula = MathTex(r"\frac{a^2}{b^2} = 2", font_size=70)
+        squared_formula.shift(ORIGIN - squared_formula.submobjects[0][5].get_center())
 
         self.play(
             mft.TransformByGlyphMap(
-                sqrt_formula,
-                sqrt_formula_squared,
-                ([0], [1]),
-                ([1], [4]),
-                ([2], [5]),
-                (Write, [0, 2]),
-                (Write, [3]),
-                mobA_submobject_index=[],
-                mobB_submobject_index=[],
+                unfolded_formula,
+                squared_formula,
+                ([0], [0]), # a
+                ([1], [2]), # Fraction Dividing Line
+                ([2], [3]), # b
+                ([3], [5]), # Equal Sign
+                ([6], [6]), # 2
+                ([4, 5], [1], {"path_arc": np.pi / 3}), # Square of a
+                ([4, 5], [4], {"path_arc": -np.pi / 3}) # Square of b
+            ),
+            run_time=2
+        )
+
+        self.next_slide()
+
+        newer_formula = MathTex(r"\frac{a^2}{2} = b^2", font_size=70)
+        newer_formula.shift(ORIGIN - newer_formula.submobjects[0][4].get_center())
+
+        self.play(
+            mft.TransformByGlyphMap(
+                squared_formula,
+                newer_formula,
+                ([0, 1], [0, 1]), # a^2
+                ([3, 4], [5, 6], {"path_arc": TAU / 2.5}), # Transform b^2 to other side
+                ([2], [2]), # Fraction Dividing Line
+                ([5], [4]), # Equal Sign
+                ([6], [3], {"path_arc": -TAU + (TAU / 2.5)}) # 2
+            ),
+            run_time=1.5
+        )
+
+        self.next_slide("a^2 gerade weil b^2 eine ganze Zahl ist \n Beispiel geben: Dividiert man eine ungerade Zahl (3, 5, 9) durch zwei, so erhält man keine ganze Zahl \n Weil a^2 gerade ist, muss auch a selber gerade sein, denn das Wurzelziehen einer geraden Quadratzahl wird immer eine gerade Zahl liefern \n Wieder Beispiele dafür nennen (5^2 = 25 ungerade, 6^2 = 36 gerade)")
+
+        newest_formula = MathTex(r"\frac{(2n)^2}{2} = b^2", font_size=70)
+        newest_formula.shift(ORIGIN - newest_formula.submobjects[0][7].get_center())
+
+        self.play(
+            mft.TransformByGlyphMap(
+                newer_formula,
+                newest_formula,
+                ([0, 1], [0, 1, 2, 3, 4])
             )
         )
+
+        newerest_formula = MathTex(r"\frac{2^2 n^2}{2} = b^2", font_size=70)
+        newerest_formula.shift(ORIGIN - newerest_formula.submobjects[0][6].get_center())
+
+        self.play(
+            mft.TransformByGlyphMap(
+                newest_formula,
+                newerest_formula,
+                ([1], [0]), # 2
+                ([2], [2]), # n
+                ([0, 3], []), # Remove braces
+                ([4], [1], {"path_arc": -PI / 3}),
+                ([4], [3], {"path_arc": -PI / 3})
+            )
+        )
+
+        self.next_slide("Somit ist auch b^2 eine gerade Zahl und so durch 2 teilbar.")
+
+        newerer_formula = MathTex(r"2n^2 = b^2", font_size=70)
+        newerer_formula.shift(ORIGIN - newerer_formula.submobjects[0][3].get_center())
+
+        self.play(
+            mft.TransformByGlyphMap(
+                newerest_formula,
+                newerer_formula,
+                ([0, 1, 5], [0]),
+                ([4], []) # Remove fraction dividing line
+            )
+        )
+
+        self.next_slide("Wir haben gezeigt, dass es keinen vollständig gekürzten Bruch gibt, um die Wurzel 2 darzustellen. \n Weil jede Rationale Zahl durch einen vollständig gekürzten Bruch dargestellt werden kann, kann es die Wurzel zwei nicht im Bereich der Rationalen Zahlen geben. Man kann es sich als Loch vorstellen — Ähnlich wie bei den Ganzen bzw. Natürlichen Zahlen")
+
+        self.play(FadeOut(newerer_formula), run_time=0.5)
+
+        self.pointer_label = MathTex(r"\sqrt{2}", color=RED).next_to(self.pointer, DOWN)
+        number_label = Text(r"Keine Rationale Zahl", color=RED, font_size=20).next_to(self.pointer_label, DOWN, buff=0.2)
+
+        self.play(FadeIn(self.number_line, self.hole, self.pointer, self.pointer_label, number_label))
+
+        self.next_slide()
+
+        self.variable_val = VariableVal(self.TEX_LOC, r"\sqrt{2}", "", r"\text{\large ?}", rhs_prt1_color=RED)
+
+        self.play(
+            FadeOut(definition_rational_num),
+            FadeIn(self.variable_val)
+        )
+
+        # TODO: Change Keine Rationale Zahl to something along the lines of 'Wie kann man √2 als Bruch darstellen?'
+        # Also afterwards don't forget to remove self.following dot using del self.following_dot
+        # Perhaps I don't need to predict position, instead I can use mobject.save_state
+
+        # # Must predict position of new_pointer_label to match .next_to(self.pointer, DOWN) due to self.value_tracker not matching np.sqrt(2) yet
+        # new_pointer_label.move_to(self.nl_to_coords(np.sqrt(2))).align_to(self.pointer_label, DOWN)
+        #
+        # # Move rest of mobjects to sqrt(2) as well, with the conjecture of the irrationality of √2
+        # self.play(
+        #     ReplacementTransform(self.following_dot, self.hole),
+        #     self.value_tracker @ np.sqrt(2), # Move pointer and pointer_label to sqrt(2)
+        #     ReplacementTransform(self.pointer_label, new_pointer_label),
+        #     self.pointer.animate.set_color(RED),
+        # )
+        #
+        # # Update attributes of self to reflect scene changes
+        # del self.following_dot
+        # self.pointer_label = new_pointer_label
+        #
+        # self.next_slide(notes="Bruch besteht aus zwei ganzen Zahlen. \n (Ganze Zahlen = Negativ und Positiv) \n Fragen ob jeder mit vollständig gekürzt verstanden hat")
+        #
+        # sqrt = MathTex(r"\sqrt{2}", color=RED, font_size=55).next_to(self.pointer, UP)
+        # # Create copies of pointer and pointer_label that transform their position with `sqrt`
+        # temp_pointer = self.pointer.copy().clear_updaters()
+        # temp_label = self.pointer_label.copy().clear_updaters()
+        #
+        # temp_pointer.add_updater(lambda mobj: mobj.next_to(self.hole, DOWN), call_updater=True)
+        # temp_label.add_updater(lambda mobj: mobj.next_to(temp_pointer, DOWN), call_updater=True)
+        #
+        # # Need to already process sqrt_formula, to match positioning of √2 sqrt and sqrt_formula
+        # sqrt_formula = MathTex(r"\frac{a}{b}", r"=", r"\sqrt{2}").scale(1.5)
+        # # Match positioning of √2 glyphs from sqrt and sqrt_formula MathTex objects
+        # pos_diff = sqrt_formula[2].get_center() - sqrt.get_center()
+        # sqrt.shift(pos_diff)
+        #
+        # # Position Change should be imperceptable.
+        # # Should be safe to replace self.pointer and self.pointer_label with temp_pointer and temp_label
+        # # in order to translate position smoothly using updaters
+        # self.replace(self.pointer, temp_pointer)
+        # self.replace(self.pointer_label, temp_label)
+        #
+        # self.play(
+        #     ReplacementTransform(self.hole, sqrt), #TODO: Check why this works instead of Transform, because there was some thought I think I had when doing this
+        #     FadeOut(self.variable_val, self.number_line),
+        #     run_time=1.5
+        # )
+        #
+        # definition_rational_num = center_markup_text(
+        #     "Jede Rationale Zahl kann durch ein ",
+        #     "<i>vollständig gekürzten Bruch</i> dargestellt werden",
+        #     font_size=30
+        # ).move_to(self.TEX_LOC)
+        #
+        # self.play(
+        #     Write(definition_rational_num),
+        # )
+        #
+        # self.next_slide(notes="Wissen nicht ob Quadratwurzel 2 rationale Zahl ist. \n kann sie als vollständig gekürzter Bruch dargestellt werden?")
+        #
+        # self.play(
+        #     FadeOut(temp_pointer, temp_label),
+        #     mft.TransformByGlyphMap(
+        #         sqrt,
+        #         sqrt_formula,
+        #         ([0], [2]),
+        #         (Write, [0, 1]),
+        #         mobA_submobject_index=[],
+        #         mobB_submobject_index=[],
+        #         default_transformer=ReplacementTransform,
+        #         run_time=2,
+        #     )
+        # )
+        #
+        # sqrt_formula_squared = MathTex(r"\left(", r"\frac{a}{b}", r"\right)", r"^2", r"=", r"2").scale(1.5)
+        #
+        # self.play(
+        #     mft.TransformByGlyphMap(
+        #         sqrt_formula,
+        #         sqrt_formula_squared,
+        #         ([0], [1]),
+        #         ([1], [4]),
+        #         ([2], [5]),
+        #         (Write, [0, 2]),
+        #         (Write, [3]),
+        #         mobA_submobject_index=[],
+        #         mobB_submobject_index=[],
+        #     )
+        # )
 
     def conclusion(self):
-        self.play(FadeOut(self.hole, self.pointer, self.pointer_label))
+        self.play(FadeOut(*self.mobjects))
 
-        square = Square()
-        square_label = VGroup(MathTex("1", font_size=20).next_to(square, DOWN), MathTex("1", font_size=20).next_to(square, RIGHT))
-        diagonal = LabeledLine("\\sqrt{2}", label_config={"color": YELLOW}, box_config={"color": BLACK}, frame_config = {"color": BLACK}, start=square.get_corner(DL), end=square.get_corner(UR), color=YELLOW)
-        square_with_diagonal = VGroup(square, square_label, diagonal)
-
-        money_svg = SVGMobject("assets/money.svg", stroke_color=RED, fill_opacity=1, width=2)
-
-        pie = SVGMobject("assets/pie-chart.svg", fill_color=WHITE, stroke_color=GRAY, fill_opacity=1, width=2)
-
-        self.play(
-            Write(VGroup(square_with_diagonal, money_svg, pie).arrange())
-        )
+        # self.play(FadeOut(self.hole, self.pointer, self.pointer_label))
+        #
+        # square = Square()
+        # square_label = VGroup(MathTex("1", font_size=20).next_to(square, DOWN), MathTex("1", font_size=20).next_to(square, RIGHT))
+        # diagonal = LabeledLine("\\sqrt{2}", label_config={"color": YELLOW}, box_config={"color": BLACK}, frame_config = {"color": BLACK}, start=square.get_corner(DL), end=square.get_corner(UR), color=YELLOW)
+        # square_with_diagonal = VGroup(square, square_label, diagonal)
+        #
+        # money_svg = SVGMobject("assets/money.svg", stroke_color=RED, fill_opacity=1, width=2)
+        #
+        # pie = SVGMobject("assets/pie-chart.svg", fill_color=WHITE, stroke_color=GRAY, fill_opacity=1, width=2)
+        #
+        # self.play(
+        #     Write(VGroup(square_with_diagonal, money_svg, pie).arrange())
+        # )
 
     def construct(self):
         self.start_skip_animations()
